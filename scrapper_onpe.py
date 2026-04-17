@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 
 def descargar_datos():
-    # USAMOS EL ID 10 PARA TODO (Es el de la elección Presidencial)
+    # Links oficiales que detectamos
     url_totales = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/totales?idEleccion=10&tipoFiltro=eleccion"
     url_participantes = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion"
     
@@ -12,24 +12,24 @@ def descargar_datos():
     }
 
     try:
-        print("Obteniendo datos de la ONPE...")
-        res_t = requests.get(url_totales, headers=headers)
-        res_p = requests.get(url_participantes, headers=headers)
-        
+        # Intentamos bajar la data
+        res_t = requests.get(url_totales, headers=headers, timeout=10)
+        res_p = requests.get(url_participantes, headers=headers, timeout=10)
+
+        # Si la ONPE responde basura (JSON inválido), esto saltará al error directamente
         d_totales = res_t.json()
         d_participantes = res_p.json()
 
-        # Extraemos los 5 candidatos con más votos del ID 10
+        # Si llegamos aquí, los datos son BUENOS. Recién ahí preparamos el JSON.
         candidatos = []
         for p in d_participantes.get('participantes', [])[:5]:
             candidatos.append({
                 "nombre": p.get('nombreAgrupacion'),
                 "votos": p.get('votosTotales'),
                 "porcentaje": p.get('porcentajeVotosValidos'),
-                "color": p.get('colorAgrupacion') if p.get('colorAgrupacion') else "#3b82f6"
+                "color": p.get('colorAgrupacion') or "#3b82f6"
             })
 
-        # Creamos el archivo unificado que leerá tu HTML
         onpe_final = {
             "data": {
                 "fechaActualizacion": int(datetime.now().timestamp() * 1000),
@@ -42,14 +42,16 @@ def descargar_datos():
             }
         }
 
-        # Guardamos el archivo
+        # ESTA ES LA LÓGICA CLAVE: Solo escribe el archivo si todo lo anterior salió bien
         with open('onpe_data.json', 'w') as f:
             json.dump(onpe_final, f, indent=4)
             
-        print("✅ ¡Éxito! Archivo onpe_data.json actualizado con actas y candidatos.")
+        print("✅ Sincronización exitosa.")
 
     except Exception as e:
-        print(f"❌ Error al procesar: {e}")
+        # Si la ONPE falla, imprimimos el error pero NO tocamos el onpe_data.json
+        # Así tu página web seguirá mostrando los últimos datos que funcionaron
+        print(f"⚠️ Error temporal de ONPE: {e}. Se mantienen los datos anteriores.")
 
 if __name__ == "__main__":
     descargar_datos()
