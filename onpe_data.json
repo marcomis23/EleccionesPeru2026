@@ -1,1 +1,13 @@
-{"data": {"actasContabilizadas": 93.354, "candidatos": []}}
+{
+    "data": {
+        "fechaActualizacion": 1776454500366,
+        "actasContabilizadas": 93.359,
+        "totalActas": 92766,
+        "totalVotosValidos": 15749270,
+        "totalVotosEmitidos": 18891622,
+        "participacionCiudadana": 69.136,
+        "candidatos": [
+            {"nombre": "Esperando datos reales...", "votos": 0, "porcentaje": 0, "color": "#334155"}
+        ]
+    }
+}
