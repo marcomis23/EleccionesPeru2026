@@ -23,7 +23,7 @@
             </div>
 
             <h1 class="text-3xl md:text-4xl font-extrabold text-blue-400 mb-2">Resultados ONPE 2026</h1>
-            <p id="fecha-actualizacion" class="text-slate-400 text-sm italic">Sincronizando con el servidor...</p>
+            <p id="fecha-actualizacion" class="text-slate-400 text-sm italic">Conectando con el servidor de datos...</p>
             
             <div class="mt-8 bg-slate-800 rounded-full h-5 overflow-hidden border border-slate-700 shadow-inner">
                 <div id="barra-avance" class="bg-gradient-to-r from-green-600 to-green-400 h-full bar-transition" style="width: 0%"></div>
@@ -32,46 +32,42 @@
         </header>
 
         <main id="contenedor-resultados" class="grid gap-6">
-            <div class="flex justify-center p-12">
+            <div id="loader" class="flex justify-center p-12">
                 <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
         </main>
 
-        <footer class="mt-12 text-center text-slate-500 text-xs">
-            <p>Datos obtenidos directamente del backend oficial de la ONPE.</p>
-            <p class="mt-1">Actualización automática cada 30 minutos vía GitHub Actions.</p>
+        <footer class="mt-12 text-center text-slate-500 text-xs border-t border-slate-800 pt-6">
+            <p>Datos obtenidos del backend oficial de la ONPE.</p>
+            <p class="mt-1">Sincronización automática activa cada 15 minutos.</p>
         </footer>
     </div>
 
     <script>
         let intervaloCronometro;
+        let estaSincronizando = false;
 
-        // Función para poner comas en los miles (ej: 15,805,309)
         function formatearNumero(num) {
             return num.toLocaleString('en-US'); 
         }
 
         async function cargarDatos() {
             try {
-                // El ?v= evita que el navegador use una copia vieja del archivo
-                const respuesta = await fetch('./onpe_data.json?v=' + Math.random());
+                const respuesta = await fetch('./onpe_data.json?v=' + Date.now());
                 const json = await respuesta.json();
                 const info = json.data;
                 
-                // 1. ACTUALIZAR FECHA REAL DE ONPE
                 if(info.fechaActualizacion) {
                     const fechaONPE = new Date(info.fechaActualizacion);
                     document.getElementById('fecha-actualizacion').innerText = `Última actualización ONPE: ${fechaONPE.toLocaleString('es-PE')}`;
                     
-                    // Sincronizar el cronómetro con la hora de esa actualización
                     iniciarCronometroGlobal(info.fechaActualizacion);
+                    estaSincronizando = false;
                 }
 
-                // 2. ACTUALIZAR BARRA DE PROGRESO
                 document.getElementById('barra-avance').style.width = info.actasContabilizadas + '%';
                 document.getElementById('texto-avance').innerText = info.actasContabilizadas + '%';
 
-                // 3. ACTUALIZAR CUADRO DE RESULTADOS CON COMAS
                 const contenedor = document.getElementById('contenedor-resultados');
                 contenedor.innerHTML = `
                     <div class="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl shadow-2xl border border-slate-700 border-t-4 border-t-blue-500">
@@ -109,36 +105,37 @@
 
             } catch (error) {
                 console.error("Error cargando el JSON:", error);
-                document.getElementById('fecha-actualizacion').innerText = "Error: El archivo de datos aún no se ha generado.";
             }
         }
 
-        function iniciarCronometroGlobal(timestampUltimaActualizacion) {
+        function iniciarCronometroGlobal(timestampONPE) {
             if (intervaloCronometro) clearInterval(intervaloCronometro);
 
             const display = document.getElementById('countdown');
-            const treintaMinutosEnMS = 30 * 60 * 1000;
-            const proximaCita = timestampUltimaActualizacion + treintaMinutosEnMS;
+            // AQUÍ ESTÁ EL CAMBIO: 15 MINUTOS (900,000 milisegundos)
+            const intervaloRefresco = 15 * 60 * 1000; 
+            const proximaCita = timestampONPE + intervaloRefresco;
 
             intervaloCronometro = setInterval(() => {
-                const ahora = new Date().getTime();
+                const ahora = Date.now();
                 const faltan = proximaCita - ahora;
 
                 if (faltan <= 0) {
                     display.innerText = "Sincronizando...";
-                    clearInterval(intervaloCronometro);
-                    setTimeout(cargarDatos, 5000); // Espera 5 seg y recarga
+                    if (!estaSincronizando) {
+                        estaSincronizando = true;
+                        // Si el robot se demora, reintenta cargar cada 15 segundos
+                        setTimeout(cargarDatos, 15000); 
+                    }
                     return;
                 }
 
                 let mins = Math.floor((faltan % (1000 * 60 * 60)) / (1000 * 60));
                 let segs = Math.floor((faltan % (1000 * 60)) / 1000);
-
                 display.innerText = `${mins}:${segs < 10 ? '0' + segs : segs}`;
             }, 1000);
         }
 
-        // Ejecutar al cargar la página
         cargarDatos();
     </script>
 </body>
