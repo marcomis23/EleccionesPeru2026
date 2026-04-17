@@ -1,13 +1,29 @@
 {
   "metadatos": {
     "avance": "92.962%",
-    "fecha_actualizacion": "16/04/2026 21:00",
+    "fecha_actualizacion": "17/04/2026 03:00",
     "total_contabilizados": "15,687,943"
   },
   "resultados": [
-    { "candidato": "KEIKO FUJIMORI", "porcentaje": 17.065, "color": "#f97316" },
-    { "candidato": "LÓPEZ ALIAGA", "porcentaje": 12.919, "color": "#3b82f6" },
-    { "candidato": "JORGE NIETO", "porcentaje": 12.013, "color": "#a855f7" },
-    { "candidato": "SÁNCHEZ (JP)", "porcentaje": 11.034, "color": "#ef4444" }
+    {
+      "candidato": "KEIKO FUJIMORI",
+      "porcentaje": 17.065,
+      "color": "#f97316"
+    },
+    {
+      "candidato": "L\u00d3PEZ ALIAGA",
+      "porcentaje": 12.919,
+      "color": "#3b82f6"
+    },
+    {
+      "candidato": "JORGE NIETO",
+      "porcentaje": 12.013,
+      "color": "#a855f7"
+    },
+    {
+      "candidato": "S\u00c1NCHEZ (JP)",
+      "porcentaje": 11.034,
+      "color": "#ef4444"
+    }
   ]
 }
