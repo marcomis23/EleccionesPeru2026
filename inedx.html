@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Electoral Perú 2026 - ONPE Real</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background-color: #0b0e14; color: #f0f6fc; font-family: 'Inter', sans-serif; }
+        .card-onpe { background: #010409; border: 1px solid #30363d; border-radius: 1.5rem; }
+        .bracket { border-left: 5px solid; padding: 1.25rem; background: rgba(255,255,255,0.02); margin-bottom: 1rem; border-radius: 0 10px 10px 0; }
+        .provincia { stroke: #0b0e14; stroke-width: 0.3px; transition: 0.2s; cursor: pointer; }
+        .provincia:hover { filter: brightness(1.4); stroke: #fff; }
+    </style>
+</head>
+<body class="p-4 lg:p-10">
+
+<div class="max-w-7xl mx-auto">
+    <header class="flex justify-between items-center mb-10">
+        <div>
+            <h1 class="text-2xl font-black uppercase italic tracking-tighter text-white">Mapa — Ganador por <span class="text-blue-500">Provincia</span></h1>
+            <p id="fecha-act" class="text-[10px] font-bold text-emerald-500 uppercase mt-1">Sincronizando con ONPE...</p>
+        </div>
+        <div id="avance-porcentaje" class="bg-slate-900 px-6 py-2 rounded-xl border border-slate-800 text-3xl font-black italic tracking-tighter">0%</div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div class="lg:col-span-7 card-onpe p-6 min-h-[700px] flex items-center justify-center relative">
+            <svg id="mapa-svg" class="w-full h-full max-h-[750px]"></svg>
+        </div>
+        <div class="lg:col-span-5" id="candidatos-list">
+            </div>
+    </div>
+</div>
+
+<script>
+    // CAMBIA ESTO POR TU LINK RAW DE GITHUB
+    const JSON_URL = "https://raw.githubusercontent.com/marcomis23/EleccionesPeru2026/main/onpe_data.json"; 
+
+    async function cargarDatos() {
+        try {
+            const res = await fetch(JSON_URL);
+            const data = await res.json();
+
+            document.getElementById('avance-porcentaje').innerText = data.metadatos.avance;
+            document.getElementById('fecha-act').innerText = `✓ Sincronizado: ${data.metadatos.fecha_actualizacion}`;
+
+            const listado = document.getElementById('candidatos-list');
+            listado.innerHTML = '<h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 italic">Votación Válida</h2>';
+            
+            data.resultados.forEach(c => {
+                listado.innerHTML += `
+                    <div class="bracket" style="border-color: ${c.color}">
+                        <div class="flex justify-between items-center">
+                            <span class="font-black text-xl uppercase">${c.candidato}</span>
+                            <span class="font-black text-3xl" style="color: ${c.color}">${c.porcentaje}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+            pintarMapa(data.resultados);
+        } catch (e) { console.error("Error cargando JSON", e); }
+    }
+
+    function pintarMapa(resultados) {
+        const width = 500, height = 750;
+        const svg = d3.select("#mapa-svg").attr("viewBox", `0 0 ${width} ${height}`);
+        d3.json("https://raw.githubusercontent.com/renzonunezaf/Elecciones_2026/main/peru_provincias.json").then(geoData => {
+            const projection = d3.geoMercator().center([-75, -9.5]).scale(2700).translate([width/2, height/2]);
+            const path = d3.geoPath().projection(projection);
+            const provinces = topojson.feature(geoData, geoData.objects.provincias);
+
+            svg.append("g").selectAll("path").data(provinces.features).enter().append("path")
+                .attr("d", path).attr("class", "provincia")
+                .attr("fill", d => {
+                    const id = d.properties.IDPROV;
+                    if (id.startsWith('01')) return resultados[0].color;
+                    if (id.startsWith('15')) return resultados[2].color;
+                    if (id.startsWith('04')) return resultados[3].color;
+                    return "#1e293b";
+                });
+        });
+    }
+    cargarDatos();
+</script>
+</body>
+</html>
