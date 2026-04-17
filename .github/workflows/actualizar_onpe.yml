@@ -2,31 +2,43 @@ name: Actualizador ONPE
 
 on:
   schedule:
+    # Se ejecuta cada 15 minutos automáticamente
     - cron: '*/15 * * * *'
+  # Permite ejecutarlo manualmente desde la pestaña Actions
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4 # Actualizado a v4
+    
+    # Ajuste de zona horaria para que la fecha sea de Lima/Perú
+    env:
+      TZ: "America/Lima"
 
-      - name: Python Setup
-        uses: actions/setup-python@v5 # Actualizado a v5
+    # Permisos cruciales para que el robot pueda guardar los cambios en el JSON
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configuración de Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Librerías
+      - name: Instalación de Librerías
         run: pip install requests
 
-      - name: Scrapping
+      - name: Ejecución del Scrapper
         run: python scrapper_onpe.py
 
-      - name: Push Changes
+      - name: Guardar cambios en el repositorio
         run: |
           git config --global user.name 'Robot ONPE'
           git config --global user.email 'action@github.com'
           git add onpe_data.json
-          git commit -m "Auto-update ONPE $(date)" || echo "No changes"
+          # Si no hay cambios (datos iguales), no da error
+          git commit -m "Auto-update ONPE $(date +'%d/%m/%Y %H:%M:%S')" || echo "No hay cambios nuevos para subir"
           git push
