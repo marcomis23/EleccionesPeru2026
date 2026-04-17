@@ -13,10 +13,11 @@
         <header class="mb-8 text-center">
             <h1 class="text-3xl font-bold text-blue-400">Resultados ONPE 2026</h1>
             <p id="fecha-actualizacion" class="text-slate-400">Cargando datos...</p>
+            
             <div class="mt-4 bg-slate-800 rounded-full h-4 overflow-hidden">
                 <div id="barra-avance" class="bg-green-500 h-full bar-transition" style="width: 0%"></div>
             </div>
-            <p class="text-sm mt-2">Avance de Actas: <span id="texto-avance">0%</span></p>
+            <p class="text-sm mt-2">Actas Contabilizadas: <span id="texto-avance">0%</span></p>
         </header>
 
         <div id="contenedor-resultados" class="grid gap-6">
@@ -26,54 +27,36 @@
     <script>
         async function cargarDatos() {
             try {
-                // Leemos tu archivo local
-                const respuesta = await fetch('./onpe_data.json');
-                const data = await respuesta.json();
+                const respuesta = await fetch('./onpe_data.json?v=' + Math.random());
+                const json = await respuesta.json();
                 
-                // Extraemos la información del formato real de la ONPE
-                const resumen = data.resumen;
-                document.getElementById('fecha-actualizacion').innerText = `Sincronizado: ${new Date().toLocaleString()}`;
-                document.getElementById('barra-avance').style.width = resumen.POR_PROCESADO + '%';
-                document.getElementById('texto-avance').innerText = resumen.POR_PROCESADO + '%';
+                // Usamos la estructura que encontraste (data)
+                const info = json.data;
+                
+                // Actualizamos el encabezado
+                document.getElementById('fecha-actualizacion').innerText = "Sincronizado con ONPE";
+                document.getElementById('barra-avance').style.width = info.actasContabilizadas + '%';
+                document.getElementById('texto-avance').innerText = info.actasContabilizadas + '%';
 
                 const contenedor = document.getElementById('contenedor-resultados');
-                contenedor.innerHTML = '';
-
-                // Los candidatos vienen en la lista 'candidatos'
-                data.candidatos.forEach(cand => {
-                    const porcentaje = cand.POR_VOTOS_VALIDOS || 0;
-                    const card = document.createElement('div');
-                    card.className = "bg-slate-800 p-4 rounded-lg shadow-lg border-l-4";
-                    
-                    // Color por candidato
-                    let color = "border-blue-500";
-                    if (cand.NOMBRE.includes("KEIKO")) color = "border-orange-500";
-                    if (cand.NOMBRE.includes("ALIAGA")) color = "border-blue-600";
-                    if (cand.NOMBRE.includes("NIETO")) color = "border-purple-500";
-
-                    card.classList.add(color);
-                    card.innerHTML = `
-                        <div class="flex justify-between mb-2">
-                            <span class="font-bold text-lg">${cand.NOMBRE}</span>
-                            <span class="text-blue-300 font-mono">${porcentaje}%</span>
+                contenedor.innerHTML = `
+                    <div class="bg-slate-800 p-6 rounded-lg shadow-lg border-t-4 border-green-500">
+                        <h2 class="text-xl font-bold mb-4">Resumen General</h2>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div class="text-slate-400">Total Actas:</div><div>${info.totalActas}</div>
+                            <div class="text-slate-400">Votos Emitidos:</div><div>${info.totalVotosEmitidos.toLocaleString()}</div>
+                            <div class="text-slate-400">Votos Válidos:</div><div>${info.totalVotosValidos.toLocaleString()}</div>
+                            <div class="text-slate-400">Participación:</div><div class="text-green-400 font-bold">${info.participacionCiudadana}%</div>
                         </div>
-                        <div class="w-full bg-slate-700 rounded-full h-3">
-                            <div class="bg-blue-400 h-full rounded-full bar-transition" style="width: ${porcentaje}%"></div>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-2">Votos totales: ${cand.VOTOS_TOTALES}</p>
-                    `;
-                    contenedor.appendChild(card);
-                });
+                    </div>
+                `;
 
             } catch (error) {
-                console.error("Error al cargar:", error);
-                document.getElementById('fecha-actualizacion').innerText = "Error al leer los datos locales.";
+                console.error("Error:", error);
+                document.getElementById('fecha-actualizacion').innerText = "Error al leer el archivo JSON.";
             }
         }
-
         cargarDatos();
-        // Recargar cada 5 minutos por si subes un archivo nuevo
-        setInterval(cargarDatos, 300000);
     </script>
 </body>
 </html>
