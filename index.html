@@ -2,97 +2,144 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Electoral Perú 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .bar-transition { transition: width 1s ease-in-out; }
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .anim-pulse { animation: pulse-soft 2s infinite; }
     </style>
 </head>
-<body class="bg-slate-900 text-white p-4 md:p-8">
+<body class="bg-slate-900 text-white p-4 md:p-8 font-sans">
     <div class="max-w-4xl mx-auto">
         <header class="mb-8 text-center relative">
-            <div class="absolute top-0 right-0 bg-blue-600/30 border border-blue-500 rounded px-3 py-1 text-xs">
-                Siguiente actualización en: <span id="countdown" class="font-mono font-bold text-blue-300">30:00</span>
+            <div class="md:absolute top-0 right-0 bg-blue-600/20 border border-blue-500/50 rounded-lg px-4 py-2 mb-4 md:mb-0">
+                <p class="text-[10px] uppercase tracking-widest text-blue-400 font-bold">Próximo refresco</p>
+                <span id="countdown" class="font-mono text-xl font-bold text-blue-300">--:--</span>
             </div>
 
-            <h1 class="text-3xl font-bold text-blue-400">Resultados ONPE 2026</h1>
-            <p id="fecha-actualizacion" class="text-slate-400 text-sm">Cargando fecha...</p>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-blue-400 mb-2">Resultados ONPE 2026</h1>
+            <p id="fecha-actualizacion" class="text-slate-400 text-sm italic">Sincronizando con el servidor...</p>
             
-            <div class="mt-6 bg-slate-800 rounded-full h-4 overflow-hidden">
-                <div id="barra-avance" class="bg-green-500 h-full bar-transition" style="width: 0%"></div>
+            <div class="mt-8 bg-slate-800 rounded-full h-5 overflow-hidden border border-slate-700 shadow-inner">
+                <div id="barra-avance" class="bg-gradient-to-r from-green-600 to-green-400 h-full bar-transition" style="width: 0%"></div>
             </div>
-            <p class="text-sm mt-2">Actas Contabilizadas: <span id="texto-avance" class="font-bold text-green-400">0%</span></p>
+            <p class="text-sm mt-3 font-medium">Avance de Actas Contabilizadas: <span id="texto-avance" class="text-green-400 text-lg font-bold">0%</span></p>
         </header>
 
-        <div id="contenedor-resultados" class="grid gap-6">
+        <main id="contenedor-resultados" class="grid gap-6">
+            <div class="flex justify-center p-12">
+                <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
+        </main>
+
+        <footer class="mt-12 text-center text-slate-500 text-xs">
+            <p>Datos obtenidos directamente del backend oficial de la ONPE.</p>
+            <p class="mt-1">Actualización automática cada 30 minutos vía GitHub Actions.</p>
+        </footer>
     </div>
 
     <script>
-        let tiempoRestante = 1800;
+        let intervaloCronometro;
 
-        function iniciarCronometro() {
-            const display = document.getElementById('countdown');
-            setInterval(() => {
-                let minutos = Math.floor(tiempoRestante / 60);
-                let segundos = tiempoRestante % 60;
-                segundos = segundos < 10 ? '0' + segundos : segundos;
-                display.innerText = `${minutos}:${segundos}`;
-                if (tiempoRestante > 0) tiempoRestante--;
-                else { tiempoRestante = 1800; cargarDatos(); }
-            }, 1000);
-        }
-
-        // Función para poner comas en los miles (ej: 15,000,000)
+        // Función para poner comas en los miles (ej: 15,805,309)
         function formatearNumero(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            return num.toLocaleString('en-US'); 
         }
 
         async function cargarDatos() {
             try {
+                // El ?v= evita que el navegador use una copia vieja del archivo
                 const respuesta = await fetch('./onpe_data.json?v=' + Math.random());
                 const json = await respuesta.json();
                 const info = json.data;
                 
+                // 1. ACTUALIZAR FECHA REAL DE ONPE
                 if(info.fechaActualizacion) {
-                    const fecha = new Date(info.fechaActualizacion);
-                    document.getElementById('fecha-actualizacion').innerText = `Última actualización ONPE: ${fecha.toLocaleString('es-PE')}`;
+                    const fechaONPE = new Date(info.fechaActualizacion);
+                    document.getElementById('fecha-actualizacion').innerText = `Última actualización ONPE: ${fechaONPE.toLocaleString('es-PE')}`;
+                    
+                    // Sincronizar el cronómetro con la hora de esa actualización
+                    iniciarCronometroGlobal(info.fechaActualizacion);
                 }
 
-                // El porcentaje se queda como estaba (con decimales)
+                // 2. ACTUALIZAR BARRA DE PROGRESO
                 document.getElementById('barra-avance').style.width = info.actasContabilizadas + '%';
                 document.getElementById('texto-avance').innerText = info.actasContabilizadas + '%';
 
+                // 3. ACTUALIZAR CUADRO DE RESULTADOS CON COMAS
                 const contenedor = document.getElementById('contenedor-resultados');
                 contenedor.innerHTML = `
-                    <div class="bg-slate-800 p-6 rounded-lg shadow-lg border-t-4 border-blue-500">
-                        <h2 class="text-xl font-bold mb-4 flex justify-between">
-                            Resumen General 
-                            <span class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">Oficial</span>
-                        </h2>
-                        <div class="grid grid-cols-2 gap-y-4 gap-x-8 text-sm md:text-base">
-                            <div class="text-slate-400">Total Actas:</div>
-                            <div class="font-mono text-right md:text-left">${formatearNumero(info.totalActas)}</div>
-                            
-                            <div class="text-slate-400">Votos Emitidos:</div>
-                            <div class="font-mono text-right md:text-left">${formatearNumero(info.totalVotosEmitidos)}</div>
-                            
-                            <div class="text-slate-400">Votos Válidos:</div>
-                            <div class="font-mono text-right md:text-left">${formatearNumero(info.totalVotosValidos)}</div>
-                            
-                            <div class="text-slate-400">Participación:</div>
-                            <div class="text-green-400 font-bold text-right md:text-left">${info.participacionCiudadana}%</div>
+                    <div class="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl shadow-2xl border border-slate-700 border-t-4 border-t-blue-500">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-slate-200">Resumen General Totales</h2>
+                            <span class="flex items-center gap-2 text-[10px] bg-green-500/10 text-green-400 px-3 py-1 rounded-full border border-green-500/20 uppercase font-bold tracking-tighter">
+                                <span class="w-2 h-2 bg-green-500 rounded-full anim-pulse"></span> Oficial ONPE
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div class="flex justify-between border-b border-slate-700/50 pb-2">
+                                    <span class="text-slate-400 text-sm">Total Actas:</span>
+                                    <span class="font-mono font-bold">${formatearNumero(info.totalActas)}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-slate-700/50 pb-2">
+                                    <span class="text-slate-400 text-sm">Votos Emitidos:</span>
+                                    <span class="font-mono font-bold">${formatearNumero(info.totalVotosEmitidos)}</span>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex justify-between border-b border-slate-700/50 pb-2">
+                                    <span class="text-slate-400 text-sm">Votos Válidos:</span>
+                                    <span class="font-mono font-bold text-blue-300">${formatearNumero(info.totalVotosValidos)}</span>
+                                </div>
+                                <div class="flex justify-between border-b border-slate-700/50 pb-2">
+                                    <span class="text-slate-400 text-sm">Participación Ciudadana:</span>
+                                    <span class="font-mono font-bold text-green-400">${info.participacionCiudadana}%</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
 
             } catch (error) {
-                console.error("Error:", error);
+                console.error("Error cargando el JSON:", error);
+                document.getElementById('fecha-actualizacion').innerText = "Error: El archivo de datos aún no se ha generado.";
             }
         }
 
+        function iniciarCronometroGlobal(timestampUltimaActualizacion) {
+            if (intervaloCronometro) clearInterval(intervaloCronometro);
+
+            const display = document.getElementById('countdown');
+            const treintaMinutosEnMS = 30 * 60 * 1000;
+            const proximaCita = timestampUltimaActualizacion + treintaMinutosEnMS;
+
+            intervaloCronometro = setInterval(() => {
+                const ahora = new Date().getTime();
+                const faltan = proximaCita - ahora;
+
+                if (faltan <= 0) {
+                    display.innerText = "Sincronizando...";
+                    clearInterval(intervaloCronometro);
+                    setTimeout(cargarDatos, 5000); // Espera 5 seg y recarga
+                    return;
+                }
+
+                let mins = Math.floor((faltan % (1000 * 60 * 60)) / (1000 * 60));
+                let segs = Math.floor((faltan % (1000 * 60)) / 1000);
+
+                display.innerText = `${mins}:${segs < 10 ? '0' + segs : segs}`;
+            }, 1000);
+        }
+
+        // Ejecutar al cargar la página
         cargarDatos();
-        iniciarCronometro();
     </script>
 </body>
 </html>
