@@ -29,7 +29,7 @@
     </div>
 
     <script>
-        let tiempoRestante = 1800; // 30 minutos en segundos
+        let tiempoRestante = 1800;
 
         function iniciarCronometro() {
             const display = document.getElementById('countdown');
@@ -38,14 +38,14 @@
                 let segundos = tiempoRestante % 60;
                 segundos = segundos < 10 ? '0' + segundos : segundos;
                 display.innerText = `${minutos}:${segundos}`;
-                
-                if (tiempoRestante > 0) {
-                    tiempoRestante--;
-                } else {
-                    tiempoRestante = 1800; // Reinicia a 30 min
-                    cargarDatos(); // Intenta recargar
-                }
+                if (tiempoRestante > 0) tiempoRestante--;
+                else { tiempoRestante = 1800; cargarDatos(); }
             }, 1000);
+        }
+
+        // Función para poner comas en los miles (ej: 15,000,000)
+        function formatearNumero(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
         async function cargarDatos() {
@@ -54,12 +54,12 @@
                 const json = await respuesta.json();
                 const info = json.data;
                 
-                // Corrección de Fecha: Convertimos el número de la ONPE a fecha legible
                 if(info.fechaActualizacion) {
                     const fecha = new Date(info.fechaActualizacion);
                     document.getElementById('fecha-actualizacion').innerText = `Última actualización ONPE: ${fecha.toLocaleString('es-PE')}`;
                 }
 
+                // El porcentaje se queda como estaba (con decimales)
                 document.getElementById('barra-avance').style.width = info.actasContabilizadas + '%';
                 document.getElementById('texto-avance').innerText = info.actasContabilizadas + '%';
 
@@ -71,17 +71,23 @@
                             <span class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">Oficial</span>
                         </h2>
                         <div class="grid grid-cols-2 gap-y-4 gap-x-8 text-sm md:text-base">
-                            <div class="text-slate-400">Total Actas:</div><div class="font-mono">${info.totalActas.toLocaleString()}</div>
-                            <div class="text-slate-400">Votos Emitidos:</div><div class="font-mono">${info.totalVotosEmitidos.toLocaleString()}</div>
-                            <div class="text-slate-400">Votos Válidos:</div><div class="font-mono">${info.totalVotosValidos.toLocaleString()}</div>
-                            <div class="text-slate-400">Participación:</div><div class="text-green-400 font-bold">${info.participacionCiudadana}%</div>
+                            <div class="text-slate-400">Total Actas:</div>
+                            <div class="font-mono text-right md:text-left">${formatearNumero(info.totalActas)}</div>
+                            
+                            <div class="text-slate-400">Votos Emitidos:</div>
+                            <div class="font-mono text-right md:text-left">${formatearNumero(info.totalVotosEmitidos)}</div>
+                            
+                            <div class="text-slate-400">Votos Válidos:</div>
+                            <div class="font-mono text-right md:text-left">${formatearNumero(info.totalVotosValidos)}</div>
+                            
+                            <div class="text-slate-400">Participación:</div>
+                            <div class="text-green-400 font-bold text-right md:text-left">${info.participacionCiudadana}%</div>
                         </div>
                     </div>
                 `;
 
             } catch (error) {
                 console.error("Error:", error);
-                document.getElementById('fecha-actualizacion').innerText = "Esperando sincronización de datos...";
             }
         }
 
