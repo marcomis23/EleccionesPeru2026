@@ -10,14 +10,18 @@
 </head>
 <body class="bg-slate-900 text-white p-4 md:p-8">
     <div class="max-w-4xl mx-auto">
-        <header class="mb-8 text-center">
+        <header class="mb-8 text-center relative">
+            <div class="absolute top-0 right-0 bg-blue-600/30 border border-blue-500 rounded px-3 py-1 text-xs">
+                Siguiente actualización en: <span id="countdown" class="font-mono font-bold text-blue-300">30:00</span>
+            </div>
+
             <h1 class="text-3xl font-bold text-blue-400">Resultados ONPE 2026</h1>
-            <p id="fecha-actualizacion" class="text-slate-400">Cargando datos...</p>
+            <p id="fecha-actualizacion" class="text-slate-400 text-sm">Cargando fecha...</p>
             
-            <div class="mt-4 bg-slate-800 rounded-full h-4 overflow-hidden">
+            <div class="mt-6 bg-slate-800 rounded-full h-4 overflow-hidden">
                 <div id="barra-avance" class="bg-green-500 h-full bar-transition" style="width: 0%"></div>
             </div>
-            <p class="text-sm mt-2">Actas Contabilizadas: <span id="texto-avance">0%</span></p>
+            <p class="text-sm mt-2">Actas Contabilizadas: <span id="texto-avance" class="font-bold text-green-400">0%</span></p>
         </header>
 
         <div id="contenedor-resultados" class="grid gap-6">
@@ -25,27 +29,51 @@
     </div>
 
     <script>
+        let tiempoRestante = 1800; // 30 minutos en segundos
+
+        function iniciarCronometro() {
+            const display = document.getElementById('countdown');
+            setInterval(() => {
+                let minutos = Math.floor(tiempoRestante / 60);
+                let segundos = tiempoRestante % 60;
+                segundos = segundos < 10 ? '0' + segundos : segundos;
+                display.innerText = `${minutos}:${segundos}`;
+                
+                if (tiempoRestante > 0) {
+                    tiempoRestante--;
+                } else {
+                    tiempoRestante = 1800; // Reinicia a 30 min
+                    cargarDatos(); // Intenta recargar
+                }
+            }, 1000);
+        }
+
         async function cargarDatos() {
             try {
                 const respuesta = await fetch('./onpe_data.json?v=' + Math.random());
                 const json = await respuesta.json();
-                
-                // Usamos la estructura que encontraste (data)
                 const info = json.data;
                 
-                // Actualizamos el encabezado
-                document.getElementById('fecha-actualizacion').innerText = "Sincronizado con ONPE";
+                // Corrección de Fecha: Convertimos el número de la ONPE a fecha legible
+                if(info.fechaActualizacion) {
+                    const fecha = new Date(info.fechaActualizacion);
+                    document.getElementById('fecha-actualizacion').innerText = `Última actualización ONPE: ${fecha.toLocaleString('es-PE')}`;
+                }
+
                 document.getElementById('barra-avance').style.width = info.actasContabilizadas + '%';
                 document.getElementById('texto-avance').innerText = info.actasContabilizadas + '%';
 
                 const contenedor = document.getElementById('contenedor-resultados');
                 contenedor.innerHTML = `
-                    <div class="bg-slate-800 p-6 rounded-lg shadow-lg border-t-4 border-green-500">
-                        <h2 class="text-xl font-bold mb-4">Resumen General</h2>
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div class="text-slate-400">Total Actas:</div><div>${info.totalActas}</div>
-                            <div class="text-slate-400">Votos Emitidos:</div><div>${info.totalVotosEmitidos.toLocaleString()}</div>
-                            <div class="text-slate-400">Votos Válidos:</div><div>${info.totalVotosValidos.toLocaleString()}</div>
+                    <div class="bg-slate-800 p-6 rounded-lg shadow-lg border-t-4 border-blue-500">
+                        <h2 class="text-xl font-bold mb-4 flex justify-between">
+                            Resumen General 
+                            <span class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">Oficial</span>
+                        </h2>
+                        <div class="grid grid-cols-2 gap-y-4 gap-x-8 text-sm md:text-base">
+                            <div class="text-slate-400">Total Actas:</div><div class="font-mono">${info.totalActas.toLocaleString()}</div>
+                            <div class="text-slate-400">Votos Emitidos:</div><div class="font-mono">${info.totalVotosEmitidos.toLocaleString()}</div>
+                            <div class="text-slate-400">Votos Válidos:</div><div class="font-mono">${info.totalVotosValidos.toLocaleString()}</div>
                             <div class="text-slate-400">Participación:</div><div class="text-green-400 font-bold">${info.participacionCiudadana}%</div>
                         </div>
                     </div>
@@ -53,10 +81,12 @@
 
             } catch (error) {
                 console.error("Error:", error);
-                document.getElementById('fecha-actualizacion').innerText = "Error al leer el archivo JSON.";
+                document.getElementById('fecha-actualizacion').innerText = "Esperando sincronización de datos...";
             }
         }
+
         cargarDatos();
+        iniciarCronometro();
     </script>
 </body>
 </html>
