@@ -8,4 +8,12 @@
         "participacionCiudadana": 69.136,
         "candidatos": []
     }
+    ,
+"candidatos": [
+    {"nombre": "RAFAEL LOPEZ ALIAGA", "votos": 1877454, "porcentaje": 11.921, "color": "#fbbf24"},
+    {"nombre": "ROBERTO SANCHEZ", "votos": 1890544, "porcentaje": 12.004, "color": "#ef4444"},
+    {"nombre": "KEIKO FUJIMORI", "votos": 1500000, "porcentaje": 10.500, "color": "#f97316"},
+    {"nombre": "CANDIDATO 4", "votos": 1200000, "porcentaje": 8.200, "color": "#3b82f6"},
+    {"nombre": "CANDIDATO 5", "votos": 900000, "porcentaje": 5.100, "color": "#a855f7"}
+]
 }
