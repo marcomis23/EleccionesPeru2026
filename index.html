@@ -23,7 +23,7 @@
             </div>
 
             <h1 class="text-3xl md:text-4xl font-extrabold text-blue-400 mb-2">Resultados ONPE 2026</h1>
-            <p id="fecha-actualizacion" class="text-slate-400 text-sm italic">Conectando con el servidor de datos...</p>
+            <p id="fecha-actualizacion" class="text-slate-400 text-sm italic">Sincronizando datos...</p>
             
             <div class="mt-8 bg-slate-800 rounded-full h-5 overflow-hidden border border-slate-700 shadow-inner">
                 <div id="barra-avance" class="bg-gradient-to-r from-green-600 to-green-400 h-full bar-transition" style="width: 0%"></div>
@@ -39,13 +39,13 @@
 
         <footer class="mt-12 text-center text-slate-500 text-xs border-t border-slate-800 pt-6">
             <p>Datos obtenidos del backend oficial de la ONPE.</p>
-            <p class="mt-1">Sincronización automática activa cada 15 minutos.</p>
+            <p class="mt-1">Sincronización automática cada 15 minutos.</p>
         </footer>
     </div>
 
     <script>
         let intervaloCronometro;
-        let estaSincronizando = false;
+        let baseTimeONPE = null;
 
         function formatearNumero(num) {
             return num.toLocaleString('en-US'); 
@@ -58,11 +58,11 @@
                 const info = json.data;
                 
                 if(info.fechaActualizacion) {
+                    baseTimeONPE = info.fechaActualizacion;
                     const fechaONPE = new Date(info.fechaActualizacion);
                     document.getElementById('fecha-actualizacion').innerText = `Última actualización ONPE: ${fechaONPE.toLocaleString('es-PE')}`;
                     
-                    iniciarCronometroGlobal(info.fechaActualizacion);
-                    estaSincronizando = false;
+                    iniciarCronometroGlobal();
                 }
 
                 document.getElementById('barra-avance').style.width = info.actasContabilizadas + '%';
@@ -77,7 +77,6 @@
                                 <span class="w-2 h-2 bg-green-500 rounded-full anim-pulse"></span> Oficial ONPE
                             </span>
                         </div>
-                        
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-4">
                                 <div class="flex justify-between border-b border-slate-700/50 pb-2">
@@ -104,35 +103,33 @@
                 `;
 
             } catch (error) {
-                console.error("Error cargando el JSON:", error);
+                console.error("Error:", error);
             }
         }
 
-        function iniciarCronometroGlobal(timestampONPE) {
+        function iniciarCronometroGlobal() {
             if (intervaloCronometro) clearInterval(intervaloCronometro);
 
             const display = document.getElementById('countdown');
-            // AQUÍ ESTÁ EL CAMBIO: 15 MINUTOS (900,000 milisegundos)
-            const intervaloRefresco = 15 * 60 * 1000; 
-            const proximaCita = timestampONPE + intervaloRefresco;
+            const quinceMinutos = 15 * 60 * 1000; 
 
             intervaloCronometro = setInterval(() => {
                 const ahora = Date.now();
-                const faltan = proximaCita - ahora;
+                // Calculamos cuánto tiempo ha pasado desde la última data
+                let tiempoTranscurrido = ahora - baseTimeONPE;
+                
+                // Magia: Usamos el residuo (%) para que el reloj siempre esté entre 15 y 0
+                let tiempoRestante = quinceMinutos - (tiempoTranscurrido % quinceMinutos);
 
-                if (faltan <= 0) {
-                    display.innerText = "Sincronizando...";
-                    if (!estaSincronizando) {
-                        estaSincronizando = true;
-                        // Si el robot se demora, reintenta cargar cada 15 segundos
-                        setTimeout(cargarDatos, 15000); 
-                    }
-                    return;
-                }
+                let mins = Math.floor(tiempoRestante / (1000 * 60));
+                let segs = Math.floor((tiempoRestante % (1000 * 60)) / 1000);
 
-                let mins = Math.floor((faltan % (1000 * 60 * 60)) / (1000 * 60));
-                let segs = Math.floor((faltan % (1000 * 60)) / 1000);
                 display.innerText = `${mins}:${segs < 10 ? '0' + segs : segs}`;
+
+                // Cada vez que el segundero marque 0 o 30, intentamos refrescar datos silenciosamente
+                if (segs === 0 && mins === 14) {
+                    cargarDatos();
+                }
             }, 1000);
         }
 
