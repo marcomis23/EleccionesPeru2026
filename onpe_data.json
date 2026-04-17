@@ -1,39 +1,37 @@
 {
     "data": {
-        "fechaActualizacion": 1776467181000,
-        "actasContabilizadas": 93.359,
+        "fechaActualizacion": 1776470227274,
+        "actasContabilizadas": null,
         "totalActas": 92766,
         "totalVotosValidos": 15749270,
-        "totalVotosEmitidos": 18891622,
-        "participacionCiudadana": 69.136,
         "candidatos": [
             {
                 "nombre": "KEIKO SOFIA FUJIMORI HIGUCHI",
-                "votos": 2686331,
+                "votos": 2686609,
                 "porcentaje": 17.057,
                 "color": "#f97316"
             },
             {
                 "nombre": "ROBERTO HELBERT SANCHEZ PALOMINO",
-                "votos": 1890544,
-                "porcentaje": 12.004,
+                "votos": 1890573,
+                "porcentaje": 12.003,
                 "color": "#ef4444"
             },
             {
-                "nombre": "RAFAEL BERNARDO LÓPEZ ALIAGA CAZORLA",
-                "votos": 1877454,
-                "porcentaje": 11.921,
+                "nombre": "RAFAEL BERNARDO L\u00d3PEZ ALIAGA CAZORLA",
+                "votos": 1877816,
+                "porcentaje": 11.922,
                 "color": "#fbbf24"
             },
             {
                 "nombre": "JORGE NIETO MONTESINOS",
-                "votos": 1742583,
+                "votos": 1742823,
                 "porcentaje": 11.065,
                 "color": "#3b82f6"
             },
             {
                 "nombre": "RICARDO PABLO BELMONT CASSINELLI",
-                "votos": 1601258,
+                "votos": 1601396,
                 "porcentaje": 10.167,
                 "color": "#8b5cf6"
             }
