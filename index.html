@@ -39,7 +39,7 @@
 
         <footer class="mt-12 text-center text-slate-500 text-xs border-t border-slate-800 pt-6">
             <p>Datos obtenidos del backend oficial de la ONPE.</p>
-            <p class="mt-1">Sincronización automática optimizada cada 20 minutos.</p>
+            <p class="mt-1">Sincronización automática optimizada cada 15 minutos.</p>
         </footer>
     </div>
 
@@ -53,6 +53,7 @@
 
         async function cargarDatos() {
             try {
+                // El timestamp Date.now() asegura que siempre baje el archivo más reciente
                 const respuesta = await fetch('./onpe_data.json?v=' + Date.now());
                 const json = await respuesta.json();
                 const info = json.data;
@@ -111,23 +112,24 @@
             if (intervaloCronometro) clearInterval(intervaloCronometro);
 
             const display = document.getElementById('countdown');
-            // CONFIGURADO A 20 MINUTOS
-            const QuinceMinutos = 15 * 60 * 1000; 
+            // CAMBIO CLAVE: Sincronizado a 15 minutos (900,000 milisegundos)
+            const quinceMinutos = 15 * 60 * 1000; 
 
             intervaloCronometro = setInterval(() => {
                 const ahora = Date.now();
+                // Calculamos el desfase desde la última data de ONPE
                 let tiempoTranscurrido = ahora - baseTimeONPE;
                 
-                // Si la data es muy vieja, el residuo hace que el reloj siempre cuente de 20 a 0
-                let tiempoRestante = veinteMinutos - (tiempoTranscurrido % veinteMinutos);
+                // El residuo (%) hace que el reloj siempre cuente de 15 a 0 en bucle
+                let tiempoRestante = quinceMinutos - (tiempoTranscurrido % quinceMinutos);
 
                 let mins = Math.floor(tiempoRestante / (1000 * 60));
                 let segs = Math.floor((tiempoRestante % (1000 * 60)) / 1000);
 
                 display.innerText = `${mins}:${segs < 10 ? '0' + segs : segs}`;
 
-                // Intento silencioso de refresco cada vez que reinicia el ciclo
-                if (segs === 0 && mins === 19) {
+                // Intento silencioso: cada vez que el reloj llega a 14:59 (reinicio del ciclo)
+                if (segs === 59 && mins === 14) {
                     cargarDatos();
                 }
             }, 1000);
