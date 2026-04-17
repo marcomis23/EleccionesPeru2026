@@ -6,7 +6,7 @@
     <title>Dashboard Electoral Perú 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .bar-transition { transition: width 1s ease-in-out; }
+        .bar-transition { transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
         @keyframes pulse-soft {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
@@ -22,24 +22,27 @@
                 <span id="countdown" class="font-mono text-xl font-bold text-blue-300">--:--</span>
             </div>
 
-            <h1 class="text-3xl md:text-4xl font-extrabold text-blue-400 mb-2">Resultados ONPE 2026</h1>
-            <p id="fecha-actualizacion" class="text-slate-400 text-sm italic">Sincronizando datos...</p>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-blue-400 mb-2 italic tracking-tighter">ONPE: RESULTADOS EN VIVO</h1>
+            <p id="fecha-actualizacion" class="text-slate-400 text-sm italic border-b border-slate-800 pb-4 inline-block">Sincronizando con el servidor...</p>
             
-            <div class="mt-8 bg-slate-800 rounded-full h-5 overflow-hidden border border-slate-700 shadow-inner">
-                <div id="barra-avance" class="bg-gradient-to-r from-green-600 to-green-400 h-full bar-transition" style="width: 0%"></div>
+            <div class="mt-8 bg-slate-800 rounded-full h-6 overflow-hidden border border-slate-700 shadow-2xl relative">
+                <div id="barra-avance" class="bg-gradient-to-r from-green-600 to-emerald-400 h-full bar-transition" style="width: 0%"></div>
             </div>
-            <p class="text-sm mt-3 font-medium">Avance de Actas Contabilizadas: <span id="texto-avance" class="text-green-400 text-lg font-bold">0%</span></p>
+            <p class="text-sm mt-3 font-medium uppercase tracking-wider text-slate-300">
+                Avance de Actas Contabilizadas: <span id="texto-avance" class="text-green-400 text-2xl font-black">0%</span>
+            </p>
         </header>
 
-        <main id="contenedor-resultados" class="grid gap-6">
-            <div id="loader" class="flex justify-center p-12">
-                <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <main id="contenedor-principal" class="space-y-6">
+            <div id="loader" class="flex flex-col items-center justify-center p-20">
+                <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p class="text-slate-400 animate-pulse">Cargando conteo oficial...</p>
             </div>
         </main>
 
-        <footer class="mt-12 text-center text-slate-500 text-xs border-t border-slate-800 pt-6">
-            <p>Datos obtenidos del backend oficial de la ONPE.</p>
-            <p class="mt-1">Sincronización automática optimizada cada 15 minutos.</p>
+        <footer class="mt-12 text-center text-slate-600 text-[10px] border-t border-slate-800 pt-8 uppercase tracking-widest">
+            <p>Fuente: Backend Oficial ONPE - idEleccion 10 (Presidencial)</p>
+            <p class="mt-2 text-blue-900 font-bold">Dashboard Automatizado - Marco Carrasco</p>
         </footer>
     </div>
 
@@ -48,12 +51,11 @@
         let baseTimeONPE = null;
 
         function formatearNumero(num) {
-            return num.toLocaleString('en-US'); 
+            return new Intl.NumberFormat('es-PE').format(num);
         }
 
         async function cargarDatos() {
             try {
-                // El timestamp Date.now() asegura que siempre baje el archivo más reciente
                 const respuesta = await fetch('./onpe_data.json?v=' + Date.now());
                 const json = await respuesta.json();
                 const info = json.data;
@@ -61,66 +63,90 @@
                 if(info.fechaActualizacion) {
                     baseTimeONPE = info.fechaActualizacion;
                     const fechaONPE = new Date(info.fechaActualizacion);
-                    document.getElementById('fecha-actualizacion').innerText = `Última actualización ONPE: ${fechaONPE.toLocaleString('es-PE')}`;
-                    
+                    document.getElementById('fecha-actualizacion').innerText = `Última actualización: ${fechaONPE.toLocaleString('es-PE')}`;
                     iniciarCronometroGlobal();
                 }
 
+                // Actualizar Barra de Actas
                 document.getElementById('barra-avance').style.width = info.actasContabilizadas + '%';
                 document.getElementById('texto-avance').innerText = info.actasContabilizadas + '%';
 
-                const contenedor = document.getElementById('contenedor-resultados');
-                contenedor.innerHTML = `
-                    <div class="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl shadow-2xl border border-slate-700 border-t-4 border-t-blue-500">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-slate-200">Resumen General Totales</h2>
-                            <span class="flex items-center gap-2 text-[10px] bg-green-500/10 text-green-400 px-3 py-1 rounded-full border border-green-500/20 uppercase font-bold tracking-tighter">
-                                <span class="w-2 h-2 bg-green-500 rounded-full anim-pulse"></span> Oficial ONPE
+                const contenedor = document.getElementById('contenedor-principal');
+                
+                // Construir HTML de Candidatos
+                let htmlCandidatos = `
+                    <div class="bg-slate-800/40 backdrop-blur-md p-6 rounded-2xl border border-slate-700 shadow-xl overflow-hidden relative">
+                        <div class="flex justify-between items-center mb-8">
+                            <h2 class="text-xl font-black text-white uppercase tracking-tighter">Votos por Candidato</h2>
+                            <span class="flex items-center gap-2 text-[10px] bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full border border-blue-500/30 font-bold">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full anim-pulse"></span> VOTOS VÁLIDOS
                             </span>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-4">
-                                <div class="flex justify-between border-b border-slate-700/50 pb-2">
-                                    <span class="text-slate-400 text-sm">Total Actas:</span>
-                                    <span class="font-mono font-bold">${formatearNumero(info.totalActas)}</span>
+                        <div class="space-y-8">
+                `;
+
+                info.candidatos.forEach((c, index) => {
+                    htmlCandidatos += `
+                        <div class="relative">
+                            <div class="flex justify-between items-end mb-2">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Puesto ${index + 1}</span>
+                                    <span class="text-sm md:text-base font-extrabold text-slate-100">${c.nombre}</span>
                                 </div>
-                                <div class="flex justify-between border-b border-slate-700/50 pb-2">
-                                    <span class="text-slate-400 text-sm">Votos Emitidos:</span>
-                                    <span class="font-mono font-bold">${formatearNumero(info.totalVotosEmitidos)}</span>
-                                </div>
-                            </div>
-                            <div class="space-y-4">
-                                <div class="flex justify-between border-b border-slate-700/50 pb-2">
-                                    <span class="text-slate-400 text-sm">Votos Válidos:</span>
-                                    <span class="font-mono font-bold text-blue-300">${formatearNumero(info.totalVotosValidos)}</span>
-                                </div>
-                                <div class="flex justify-between border-b border-slate-700/50 pb-2">
-                                    <span class="text-slate-400 text-sm">Participación Ciudadana:</span>
-                                    <span class="font-mono font-bold text-green-400">${info.participacionCiudadana}%</span>
+                                <div class="text-right">
+                                    <span class="text-xl font-black text-white">${c.porcentaje}%</span>
+                                    <p class="text-[10px] text-slate-500 font-mono">${formatearNumero(c.votos)} votos</p>
                                 </div>
                             </div>
+                            <div class="w-full bg-slate-900/50 rounded-full h-4 border border-slate-700/50 p-[2px]">
+                                <div class="h-full rounded-full bar-transition" 
+                                     style="width: ${c.porcentaje}%; background-color: ${c.color || '#3b82f6'}; box-shadow: 0 0 15px ${c.color}44">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                htmlCandidatos += `</div></div>`;
+
+                // Resumen de Totales
+                let htmlTotales = `
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-slate-800/20 p-4 rounded-xl border border-slate-800 text-center">
+                            <p class="text-slate-500 text-[10px] uppercase font-bold">Total Actas</p>
+                            <p class="text-lg font-bold">${formatearNumero(info.totalActas)}</p>
+                        </div>
+                        <div class="bg-slate-800/20 p-4 rounded-xl border border-slate-800 text-center">
+                            <p class="text-slate-500 text-[10px] uppercase font-bold">Votos Emitidos</p>
+                            <p class="text-lg font-bold">${formatearNumero(info.totalVotosEmitidos)}</p>
+                        </div>
+                        <div class="bg-slate-800/20 p-4 rounded-xl border border-slate-800 text-center">
+                            <p class="text-slate-500 text-[10px] uppercase font-bold">Votos Válidos</p>
+                            <p class="text-lg font-bold text-blue-400">${formatearNumero(info.totalVotosValidos)}</p>
+                        </div>
+                        <div class="bg-slate-800/20 p-4 rounded-xl border border-slate-800 text-center">
+                            <p class="text-slate-500 text-[10px] uppercase font-bold">Participación</p>
+                            <p class="text-lg font-bold text-green-400">${info.participacionCiudadana}%</p>
                         </div>
                     </div>
                 `;
 
+                contenedor.innerHTML = htmlCandidatos + htmlTotales;
+
             } catch (error) {
-                console.error("Error cargando el JSON:", error);
+                console.error("Error cargando JSON:", error);
+                document.getElementById('contenedor-principal').innerHTML = `<p class="text-center text-red-400 p-10">Error al conectar con los datos. Reintentando...</p>`;
             }
         }
 
         function iniciarCronometroGlobal() {
             if (intervaloCronometro) clearInterval(intervaloCronometro);
-
             const display = document.getElementById('countdown');
-            // CAMBIO CLAVE: Sincronizado a 15 minutos (900,000 milisegundos)
             const quinceMinutos = 15 * 60 * 1000; 
 
             intervaloCronometro = setInterval(() => {
                 const ahora = Date.now();
-                // Calculamos el desfase desde la última data de ONPE
                 let tiempoTranscurrido = ahora - baseTimeONPE;
-                
-                // El residuo (%) hace que el reloj siempre cuente de 15 a 0 en bucle
                 let tiempoRestante = quinceMinutos - (tiempoTranscurrido % quinceMinutos);
 
                 let mins = Math.floor(tiempoRestante / (1000 * 60));
@@ -128,7 +154,6 @@
 
                 display.innerText = `${mins}:${segs < 10 ? '0' + segs : segs}`;
 
-                // Intento silencioso: cada vez que el reloj llega a 14:59 (reinicio del ciclo)
                 if (segs === 59 && mins === 14) {
                     cargarDatos();
                 }
