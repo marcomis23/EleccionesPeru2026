@@ -39,7 +39,7 @@
 
         <footer class="mt-12 text-center text-slate-500 text-xs border-t border-slate-800 pt-6">
             <p>Datos obtenidos del backend oficial de la ONPE.</p>
-            <p class="mt-1">Sincronización automática cada 15 minutos.</p>
+            <p class="mt-1">Sincronización automática optimizada cada 20 minutos.</p>
         </footer>
     </div>
 
@@ -103,7 +103,7 @@
                 `;
 
             } catch (error) {
-                console.error("Error:", error);
+                console.error("Error cargando el JSON:", error);
             }
         }
 
@@ -111,23 +111,23 @@
             if (intervaloCronometro) clearInterval(intervaloCronometro);
 
             const display = document.getElementById('countdown');
-            const quinceMinutos = 15 * 60 * 1000; 
+            // CONFIGURADO A 20 MINUTOS
+            const veinteMinutos = 15 * 60 * 1000; 
 
             intervaloCronometro = setInterval(() => {
                 const ahora = Date.now();
-                // Calculamos cuánto tiempo ha pasado desde la última data
                 let tiempoTranscurrido = ahora - baseTimeONPE;
                 
-                // Magia: Usamos el residuo (%) para que el reloj siempre esté entre 15 y 0
-                let tiempoRestante = quinceMinutos - (tiempoTranscurrido % quinceMinutos);
+                // Si la data es muy vieja, el residuo hace que el reloj siempre cuente de 20 a 0
+                let tiempoRestante = veinteMinutos - (tiempoTranscurrido % veinteMinutos);
 
                 let mins = Math.floor(tiempoRestante / (1000 * 60));
                 let segs = Math.floor((tiempoRestante % (1000 * 60)) / 1000);
 
                 display.innerText = `${mins}:${segs < 10 ? '0' + segs : segs}`;
 
-                // Cada vez que el segundero marque 0 o 30, intentamos refrescar datos silenciosamente
-                if (segs === 0 && mins === 14) {
+                // Intento silencioso de refresco cada vez que reinicia el ciclo
+                if (segs === 0 && mins === 19) {
                     cargarDatos();
                 }
             }, 1000);
