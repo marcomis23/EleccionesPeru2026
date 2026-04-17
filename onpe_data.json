@@ -1,13 +1,42 @@
 {
     "data": {
-        "fechaActualizacion": 1776454500366,
+        "fechaActualizacion": 1776467181000,
         "actasContabilizadas": 93.359,
         "totalActas": 92766,
         "totalVotosValidos": 15749270,
         "totalVotosEmitidos": 18891622,
         "participacionCiudadana": 69.136,
         "candidatos": [
-            {"nombre": "Esperando datos reales...", "votos": 0, "porcentaje": 0, "color": "#334155"}
+            {
+                "nombre": "KEIKO SOFIA FUJIMORI HIGUCHI",
+                "votos": 2686331,
+                "porcentaje": 17.057,
+                "color": "#f97316"
+            },
+            {
+                "nombre": "ROBERTO HELBERT SANCHEZ PALOMINO",
+                "votos": 1890544,
+                "porcentaje": 12.004,
+                "color": "#ef4444"
+            },
+            {
+                "nombre": "RAFAEL BERNARDO LÓPEZ ALIAGA CAZORLA",
+                "votos": 1877454,
+                "porcentaje": 11.921,
+                "color": "#fbbf24"
+            },
+            {
+                "nombre": "JORGE NIETO MONTESINOS",
+                "votos": 1742583,
+                "porcentaje": 11.065,
+                "color": "#3b82f6"
+            },
+            {
+                "nombre": "RICARDO PABLO BELMONT CASSINELLI",
+                "votos": 1601258,
+                "porcentaje": 10.167,
+                "color": "#8b5cf6"
+            }
         ]
     }
 }
