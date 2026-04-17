@@ -1,23 +1,23 @@
 {
-    "success": true,
-    "message": "",
-    "data": {
-        "actasContabilizadas": 93.347,
-        "contabilizadas": 86594,
-        "totalActas": 92766,
-        "participacionCiudadana": 69.127,
-        "actasEnviadasJee": 6.085,
-        "enviadasJee": 5645,
-        "actasPendientesJee": 0.568,
-        "pendientesJee": 527,
-        "fechaActualizacion": 1776443700364,
-        "idUbigeoDepartamento": 140000,
-        "idUbigeoProvincia": 140100,
-        "idUbigeoDistrito": 140101,
-        "idUbigeoDistritoElectoral": 15,
-        "totalVotosEmitidos": 18889123,
-        "totalVotosValidos": 15747086,
-        "porcentajeVotosEmitidos": 100,
-        "porcentajeVotosValidos": 100
-    }
+  "success": true,
+  "message": "",
+  "data": {
+    "actasContabilizadas": 93.347,
+    "contabilizadas": 86594,
+    "totalActas": 92766,
+    "participacionCiudadana": 69.127,
+    "actasEnviadasJee": 6.085,
+    "enviadasJee": 5645,
+    "actasPendientesJee": 0.568,
+    "pendientesJee": 527,
+    "fechaActualizacion": 1776445500346,
+    "idUbigeoDepartamento": 140000,
+    "idUbigeoProvincia": 140100,
+    "idUbigeoDistrito": 140101,
+    "idUbigeoDistritoElectoral": 15,
+    "totalVotosEmitidos": 18889123,
+    "totalVotosValidos": 15747086,
+    "porcentajeVotosEmitidos": 100,
+    "porcentajeVotosValidos": 100
+  }
 }
