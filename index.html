@@ -1,76 +1,160 @@
-import requests
-import json
-import random
-import time
-from datetime import datetime
-
-def descargar_datos():
-    # Link de participantes que trae TODA la info junta
-    url = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion"
-    
-    session = requests.Session()
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Referer': 'https://resultadoelectoral.onpe.gob.pe/'
-    }
-
-    try:
-        # Paso 1: Obtener cookies
-        session.get("https://resultadoelectoral.onpe.gob.pe/", headers=headers, timeout=15)
-        time.sleep(2)
-        
-        # Paso 2: Pedir la data real
-        response = session.get(url, headers=headers, timeout=20)
-        
-        if response.status_code == 200:
-            data_raw = response.json()
-            # La ONPE a veces mete la info en 'data' y otras veces en 'participantes'
-            lista = data_raw.get('data', data_raw.get('participantes', []))
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ONPE: Dashboard Electoral Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
+        .bar-anim { transition: width 2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+    <div class="max-w-4xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+            <div class="text-center md:text-left">
+                <h1 class="text-4xl font-black italic tracking-tighter text-blue-500 uppercase">ONPE EN VIVO</h1>
+                <div class="flex items-center gap-2 mt-2 text-slate-400 font-bold text-[10px] tracking-widest uppercase">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    Siguiente actualización: <span id="timer" class="text-blue-400">15:00</span>
+                </div>
+            </div>
             
-            if not lista:
-                print("⚠️ No se encontraron candidatos en la respuesta.")
-                return
+            <div class="bg-blue-600 p-6 rounded-[2.5rem] shadow-2xl shadow-blue-900/30 flex items-center gap-4 border border-blue-400/30">
+                <i class="fa-solid fa-box-check text-3xl"></i>
+                <div>
+                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest">Actas Contabilizadas</p>
+                    <p id="porcentaje-actas" class="text-3xl font-black leading-none mt-1">93.359%</p>
+                </div>
+            </div>
+        </header>
 
-            # ORDENAR POR VOTOS
-            ordenados = sorted(lista, key=lambda x: x.get('totalVotosValidos', 0) or x.get('votosTotales', 0), reverse=True)
-            
-            # --- EL ARREGLO PARA EL NONE ---
-            # Buscamos el porcentaje en el primer candidato usando varios nombres posibles
-            p = ordenados[0]
-            avance_real = p.get('porcentajeActasContabilizadas') or p.get('avance') or p.get('actasContabilizadas') or "93.359"
+        <main class="glass rounded-[3rem] p-6 md:p-12 mb-8 shadow-2xl">
+            <h2 class="text-sm font-black text-slate-500 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
+                <span class="w-8 h-[2px] bg-blue-500"></span>
+                Top 5 Presidencial
+            </h2>
+            <div id="contenedor-candidatos" class="space-y-12">
+                <div class="animate-pulse flex flex-col gap-4">
+                    <div class="h-4 bg-slate-700 rounded w-1/4"></div>
+                    <div class="h-12 bg-slate-700 rounded-3xl"></div>
+                </div>
+            </div>
+        </main>
 
-            top_5 = []
-            colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"]
-            
-            for i, c in enumerate(ordenados[:5]):
-                top_5.append({
-                    "nombre": c.get('nombreCandidato') or c.get('nombreAgrupacionPolitica'),
-                    "votos": c.get('totalVotosValidos') or c.get('votosTotales'),
-                    "porcentaje": c.get('porcentajeVotosValidos'),
-                    "color": colores[i]
-                })
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="glass p-6 rounded-[2rem] text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Votos Válidos</p>
+                <p id="votos-validos" class="text-xl font-black text-blue-400">0</p>
+            </div>
+            <div class="glass p-6 rounded-[2rem] text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Participación</p>
+                <p id="participacion" class="text-xl font-black text-emerald-400">0%</p>
+            </div>
+            <div class="glass p-6 rounded-[2rem] text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Fuente</p>
+                <p id="fuente-dato" class="text-[10px] font-black text-slate-400 uppercase italic">Sincronizando...</p>
+            </div>
+        </div>
 
-            # Estructura final para el Dashboard
-            onpe_final = {
-                "data": {
-                    "fechaActualizacion": int(datetime.now().timestamp() * 1000),
-                    "actasContabilizadas": avance_real,
-                    "totalVotosValidos": 15749270, # Dato de respaldo
-                    "participacionCiudadana": 69.136, # Dato de respaldo
-                    "candidatos": top_5
+        <footer class="mt-12 text-center">
+            <p id="fecha-actualizacion" class="text-slate-600 text-[10px] font-bold uppercase tracking-widest">Cargando fecha...</p>
+            <p class="text-blue-900 font-black text-[9px] mt-4 uppercase tracking-[0.5em]">Dashboard Pro - Marco Carrasco</p>
+        </footer>
+    </div>
+
+    <script>
+        let timeLeft = 15 * 60;
+
+        async function cargarDatos() {
+            let actas = "93.359"; 
+            let candidatos = [];
+            let validos = "15,749,270";
+            let participacion = "69.136%";
+
+            try {
+                // 1. Intentar Local
+                const resLocal = await fetch('./onpe_data.json?v=' + Date.now());
+                if (resLocal.ok) {
+                    const json = await resLocal.json();
+                    const d = json.data || json;
+                    if (d.actasContabilizadas) actas = d.actasContabilizadas;
+                    if (d.candidatos) candidatos = d.candidatos;
+                    if (d.totalVotosValidos) validos = Number(d.totalVotosValidos).toLocaleString();
+                    if (d.participacionCiudadana) participacion = d.participacionCiudadana + '%';
                 }
-            }
 
-            with open('onpe_data.json', 'w') as f:
-                json.dump(onpe_final, f, indent=4)
-            
-            print(f"✅ LOGRADO: Sincronizado al {avance_real}%")
-        else:
-            print(f"❌ Error de servidor: {response.status_code}")
+                // 2. Bypass Proxy (solo refresca si hay algo nuevo)
+                try {
+                    const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion");
+                    const resProxy = await fetch(proxyUrl);
+                    const dataProxy = await resProxy.json();
+                    const raw = JSON.parse(dataProxy.contents).data;
 
-    except Exception as e:
-        print(f"❌ Error crítico: {e}")
+                    if (raw && raw.length > 0) {
+                        const nuevoAvance = raw[0].porcentajeActasContabilizadas;
+                        if (parseFloat(nuevoAvance) >= parseFloat(actas)) {
+                            actas = nuevoAvance;
+                            document.getElementById('fuente-dato').innerText = "Directo ONPE";
+                            const ordenados = raw.sort((a,b) => b.totalVotosValidos - a.totalVotosValidos);
+                            const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
+                            candidatos = ordenados.slice(0,5).map((c, i) => ({
+                                nombre: c.nombreCandidato || c.nombreAgrupacionPolitica,
+                                votos: c.totalVotosValidos,
+                                porcentaje: c.porcentajeVotosValidos,
+                                color: colores[i]
+                            }));
+                        }
+                    }
+                } catch (e) { document.getElementById('fuente-dato').innerText = "GitHub Respaldo"; }
 
-if __name__ == "__main__":
-    descargar_datos()
+                // --- PINTAR ---
+                document.getElementById('porcentaje-actas').innerText = actas + '%';
+                document.getElementById('votos-validos').innerText = validos;
+                document.getElementById('participacion').innerText = participacion;
+                document.getElementById('fecha-actualizacion').innerText = 'CONSULTA: ' + new Date().toLocaleString('es-PE');
+
+                const cont = document.getElementById('contenedor-candidatos');
+                if (candidatos.length > 0) {
+                    cont.innerHTML = '';
+                    candidatos.forEach(c => {
+                        cont.innerHTML += `
+                            <div>
+                                <div class="flex justify-between items-end mb-4">
+                                    <div class="flex flex-col">
+                                        <span class="text-xl font-black italic tracking-tighter uppercase leading-none text-white">${c.nombre}</span>
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">${Number(c.votos).toLocaleString()} Votos</span>
+                                    </div>
+                                    <span class="text-3xl font-black text-white">${c.porcentaje}<span class="text-sm opacity-50 ml-1">%</span></span>
+                                </div>
+                                <div class="w-full bg-slate-900 rounded-full h-4 p-1 border border-white/5 overflow-hidden">
+                                    <div class="bar-anim h-full rounded-full" style="width: ${c.porcentaje}%; background-color: ${c.color}; box-shadow: 0 0 20px ${c.color}44"></div>
+                                </div>
+                            </div>`;
+                    });
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function startTimer() {
+            setInterval(() => {
+                if (timeLeft <= 0) {
+                    timeLeft = 15 * 60;
+                    cargarDatos();
+                }
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60);
+                const s = timeLeft % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' + s : s}`;
+            }, 1000);
+        }
+
+        cargarDatos();
+        startTimer();
+    </script>
+</body>
+</html>
