@@ -18,8 +18,8 @@
         
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-slate-800 italic">ONPE: RESULTADOS PRESIDENCIALES</h1>
-                <p id="fecha-actualizacion" class="text-slate-500 font-medium">Cargando última actualización...</p>
+                <h1 class="text-3xl font-bold text-slate-800 italic uppercase">Resultados ONPE en Vivo</h1>
+                <p id="fecha-actualizacion" class="text-slate-500 font-medium">Sincronizando datos...</p>
             </div>
             <div class="bg-blue-600 text-white px-6 py-3 rounded-2xl card-shadow flex items-center gap-3">
                 <i class="fa-solid fa-box-archive text-2xl"></i>
@@ -36,33 +36,31 @@
                 Votos por Candidato (Top 5)
             </h2>
             <div id="contenedor-candidatos" class="space-y-6">
-                <div class="animate-pulse flex space-x-4">
-                    <div class="flex-1 space-y-4 py-1">
-                        <div class="h-4 bg-slate-200 rounded w-3/4"></div>
-                        <div class="h-8 bg-slate-200 rounded"></div>
-                    </div>
+                <div class="animate-pulse space-y-4">
+                    <div class="h-4 bg-slate-200 rounded w-1/4"></div>
+                    <div class="h-8 bg-slate-200 rounded-full"></div>
                 </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200">
-                <p class="text-slate-500 text-sm">Votos Válidos</p>
-                <p id="votos-validos" class="text-lg font-bold text-slate-700">-</p>
+                <p class="text-slate-500 text-sm">Estado de Fuente</p>
+                <p id="fuente-dato" class="text-sm font-bold text-blue-600">Verificando...</p>
             </div>
             <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200">
-                <p class="text-slate-500 text-sm">Participación</p>
-                <p id="participacion" class="text-lg font-bold text-slate-700">-</p>
-            </div>
-            <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200">
-                <p class="text-slate-500 text-sm">Estado del Sistema</p>
+                <p class="text-slate-500 text-sm">Sincronización</p>
                 <p class="text-emerald-600 font-bold flex items-center justify-center gap-2">
                     <span class="relative flex h-3 w-3">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                     </span>
-                    Sincronizado
+                    Tiempo Real
                 </p>
+            </div>
+            <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200">
+                <p class="text-slate-500 text-sm">Modo de Consulta</p>
+                <p class="text-slate-700 font-bold">Bypass Directo</p>
             </div>
         </div>
     </div>
@@ -70,28 +68,56 @@
     <script>
         async function cargarDatos() {
             try {
-                // Añadimos un parámetro 'v' para evitar que el navegador guarde una copia vieja (cache)
-                const respuesta = await fetch('./onpe_data.json?v=' + Date.now());
-                if (!respuesta.ok) throw new Error("No se pudo cargar el JSON");
+                // 1. Intentamos leer el archivo local primero (caché del robot)
+                const respuestaLocal = await fetch('./onpe_data.json?v=' + Date.now());
+                let d = { data: { actasContabilizadas: 0, candidatos: [] } };
                 
-                const json = await respuesta.json();
-                const d = json.data;
+                if (respuestaLocal.ok) {
+                    const temp = await respuestaLocal.json();
+                    d = temp.data;
+                }
 
-                // Actualizar Actas y Fecha
+                // 2. BYPASS: Intentamos jalar data fresca de la ONPE usando un Proxy para evitar el bloqueo CORS
+                try {
+                    const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion");
+                    const resFresco = await fetch(proxyUrl);
+                    const jsonFresco = await resFresco.json();
+                    const dataFresca = JSON.parse(jsonFresco.contents).data;
+
+                    if (dataFresca && dataFresca.length > 0) {
+                        const avanceFresco = dataFresca[0].porcentajeActasContabilizadas;
+                        
+                        // Si la ONPE tiene datos más nuevos que nuestro archivo local, actualizamos la vista
+                        if (parseFloat(avanceFresco) >= parseFloat(d.actasContabilizadas)) {
+                            document.getElementById('fuente-dato').innerText = "DIRECTO ONPE";
+                            d.actasContabilizadas = avanceFresco;
+                            
+                            const ordenados = dataFresca.sort((a,b) => b.totalVotosValidos - a.totalVotosValidos);
+                            const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
+                            
+                            d.candidatos = ordenados.slice(0,5).map((c, i) => ({
+                                nombre: c.nombreCandidato,
+                                votos: c.totalVotosValidos,
+                                porcentaje: c.porcentajeVotosValidos,
+                                color: colores[i]
+                            }));
+                        }
+                    }
+                } catch (e) {
+                    console.log("Error en bypass, usando respaldo local.");
+                    document.getElementById('fuente-dato').innerText = "ARCHIVO LOCAL";
+                }
+
+                // --- RENDERIZADO EN PANTALLA ---
                 document.getElementById('porcentaje-actas').innerText = d.actasContabilizadas + '%';
-                const fecha = new Date(d.fechaActualizacion);
-                document.getElementById('fecha-actualizacion').innerText = 'Actualizado: ' + fecha.toLocaleString('es-PE');
+                const fecha = new Date();
+                document.getElementById('fecha-actualizacion').innerText = 'Última consulta: ' + fecha.toLocaleString('es-PE');
                 
-                // Actualizar contadores inferiores
-                document.getElementById('votos-validos').innerText = Number(d.totalVotosValidos).toLocaleString();
-                document.getElementById('participacion').innerText = d.participacionCiudadana + '%';
-
-                // Dibujar candidatos
                 const contenedor = document.getElementById('contenedor-candidatos');
-                contenedor.innerHTML = ''; // Limpiar loader
+                contenedor.innerHTML = ''; 
 
                 d.candidatos.forEach(c => {
-                    const htmlCandidato = `
+                    contenedor.innerHTML += `
                         <div>
                             <div class="flex justify-between items-end mb-2">
                                 <div>
@@ -102,28 +128,20 @@
                             </div>
                             <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
                                 <div class="progress-bar h-full rounded-full" 
-                                     style="width: ${c.porcentaje}%; background-color: ${c.color}; shadow: 0 0 10px ${c.color}44">
+                                     style="width: ${c.porcentaje}%; background-color: ${c.color};">
                                 </div>
                             </div>
-                        </div>
-                    `;
-                    contenedor.innerHTML += htmlCandidato;
+                        </div>`;
                 });
 
             } catch (error) {
-                console.error("Error cargando Dashboard:", error);
-                document.getElementById('contenedor-candidatos').innerHTML = `
-                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl text-amber-800 flex items-center gap-3">
-                        <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
-                        <p>Los datos se están sincronizando con la ONPE. Por favor, refresca en un momento.</p>
-                    </div>
-                `;
+                console.error("Error crítico:", error);
             }
         }
 
-        // Ejecutar al cargar y cada 2 minutos
+        // Ejecutar al abrir y cada 60 segundos
         cargarDatos();
-        setInterval(cargarDatos, 120000);
+        setInterval(cargarDatos, 60000);
     </script>
 </body>
 </html>
