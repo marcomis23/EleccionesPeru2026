@@ -55,7 +55,7 @@
                 <p id="participacion" class="text-xl font-black text-emerald-400">69.136%</p>
             </div>
             <div class="glass p-6 rounded-[2rem] text-center">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Fuente</p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Estado de Enlace</p>
                 <p id="fuente-dato" class="text-[10px] font-black text-slate-400 uppercase italic">Verificando...</p>
             </div>
         </div>
@@ -68,51 +68,55 @@
 
     <script>
         async function cargarDatos() {
+            // Link de la ONPE que usa Renzo para candidatos
             const urlONPE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion";
+            
+            // Usamos un proxy para saltar el CORS (bloqueo de navegador)
             const proxy = "https://api.allorigins.win/get?url=" + encodeURIComponent(urlONPE);
 
             try {
-                const response = await fetch(proxy + "&cache=" + Date.now());
+                const response = await fetch(proxy + "&t=" + Date.now());
                 const json = await response.json();
                 
-                // Parseo súper flexible para que no falle nunca
-                const fullData = JSON.parse(json.contents);
-                const lista = fullData.data || fullData.participantes || fullData;
+                // Extraemos la data del proxy
+                const rawData = JSON.parse(json.contents);
+                const lista = rawData.data || rawData.participantes;
 
-                if (Array.isArray(lista) && lista.length > 0) {
-                    renderizar(lista, "DIRECTO ONPE");
+                if (lista && lista.length > 0) {
+                    renderizar(lista, "ONPE EN VIVO (CONECTADO)");
                 } else {
-                    throw new Error("Formato desconocido");
+                    throw new Error("Data vacía");
                 }
             } catch (e) {
-                console.log("Fallo bypass, usando respaldo local...");
+                console.log("Error en enlace ONPE, usando respaldo local...");
+                // Respaldo de tu GitHub
                 try {
                     const resLocal = await fetch('./onpe_data.json?v=' + Date.now());
                     const local = await resLocal.json();
                     const d = local.data || local;
-                    renderizar(d.candidatos, "ARCHIVO GITHUB", d.actasContabilizadas);
+                    renderizar(d.candidatos, "ARCHIVO RESPALDO (GITHUB)", d.actasContabilizadas);
                 } catch (err) {
-                    document.getElementById('fuente-dato').innerText = "ERROR DE CONEXIÓN";
+                    document.getElementById('fuente-dato').innerText = "SIN CONEXIÓN";
                 }
             }
         }
 
         function renderizar(lista, fuente, actasManual = null) {
-            // 1. ACTAS (Buscando en todos los posibles nombres de campo)
-            const avance = actasManual || lista[0].porcentajeActasContabilizadas || lista[0].avance || "93.359";
+            // 1. Actualizar Porcentaje de Actas
+            const avance = actasManual || (lista[0].porcentajeActasContabilizadas || lista[0].avance || "93.359");
             document.getElementById('porcentaje-actas').innerText = avance + '%';
             
-            // 2. CANDIDATOS
-            const ordenados = lista.sort((a,b) => (b.totalVotosValidos || b.votosTotales || b.votos) - (a.totalVotosValidos || a.votosTotales || a.votos));
+            // 2. Procesar Candidatos
+            const ordenados = lista.sort((a,b) => (b.totalVotosValidos || b.votosTotales) - (a.totalVotosValidos || a.votosTotales));
             const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
             
             const cont = document.getElementById('contenedor-candidatos');
             cont.innerHTML = ''; 
             
             ordenados.slice(0,5).forEach((c, i) => {
-                const nombre = c.nombreCandidato || c.nombreAgrupacionPolitica || c.nombre || "Candidato";
-                const votos = c.totalVotosValidos || c.votosTotales || c.votos || 0;
-                const porc = c.porcentajeVotosValidos || c.porcentaje || "0.00";
+                const nombre = c.nombreCandidato || c.nombreAgrupacionPolitica || "Candidato";
+                const votos = c.totalVotosValidos || c.votosTotales || 0;
+                const porc = c.porcentajeVotosValidos || "0.00";
                 
                 cont.innerHTML += `
                     <div>
@@ -129,9 +133,9 @@
                     </div>`;
             });
 
-            // 3. ACTUALIZAR TEXTOS (FECHA Y ESTADO)
+            // 3. Actualizar textos dinámicos
             document.getElementById('fuente-dato').innerText = fuente;
-            document.getElementById('fecha-onpe').innerText = "SINCRO: " + new Date().toLocaleDateString('es-PE') + " " + new Date().toLocaleTimeString('es-PE');
+            document.getElementById('fecha-onpe').innerText = "SINCRO: " + new Date().toLocaleTimeString('es-PE');
             document.getElementById('fecha-consulta').innerText = 'ÚLTIMA CONSULTA: ' + new Date().toLocaleTimeString('es-PE');
         }
 
