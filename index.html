@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ONPE: Dashboard Electoral Pro</title>
+    <title>ONPE: Dashboard Electoral</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -17,17 +17,17 @@
     <div class="max-w-4xl mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
             <div class="text-center md:text-left">
-                <h1 class="text-4xl font-black italic tracking-tighter text-blue-500 uppercase leading-none text-white">ONPE EN VIVO</h1>
-                <p id="fecha-onpe" class="text-slate-400 font-bold text-[10px] tracking-widest uppercase mt-3 text-white">
-                    Sincronizando con última actualización ONPE...
+                <h1 class="text-4xl font-black italic tracking-tighter text-blue-500 uppercase leading-none">ONPE EN VIVO</h1>
+                <p id="fecha-onpe" class="text-slate-400 font-bold text-[10px] tracking-widest uppercase mt-3">
+                    Sincronizando...
                 </p>
             </div>
             
             <div class="bg-blue-600 p-6 rounded-[2.5rem] shadow-2xl shadow-blue-900/30 flex items-center gap-4 border border-blue-400/30">
-                <i class="fa-solid fa-box-check text-3xl text-white"></i>
+                <i class="fa-solid fa-box-check text-3xl"></i>
                 <div>
-                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest text-white">Actas Contabilizadas</p>
-                    <p id="porcentaje-actas" class="text-3xl font-black leading-none mt-1 text-white">93.359%</p>
+                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest">Estado</p>
+                    <p id="estado-texto" class="text-2xl font-black leading-none mt-1">CONECTADO</p>
                 </div>
             </div>
         </header>
@@ -37,110 +37,71 @@
                 <span class="w-8 h-[2px] bg-blue-500"></span>
                 Top 5 Presidencial
             </h2>
-            <div id="contenedor-candidatos" class="space-y-12 text-white">
-                <div class="animate-pulse flex flex-col gap-4">
-                    <div class="h-4 bg-slate-700 rounded w-1/4"></div>
-                    <div class="h-12 bg-slate-700 rounded-3xl w-full"></div>
+            <div id="contenedor-candidatos" class="space-y-12">
                 </div>
-            </div>
         </main>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass p-6 rounded-[2rem] text-center">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Votos Válidos</p>
-                <p id="votos-validos" class="text-xl font-black text-blue-400">15,749,270</p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Fuente oficial</p>
+                <p class="text-xl font-black text-blue-400 italic">ONPE PERÚ</p>
             </div>
             <div class="glass p-6 rounded-[2rem] text-center">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Participación</p>
-                <p id="participacion" class="text-xl font-black text-emerald-400">69.136%</p>
-            </div>
-            <div class="glass p-6 rounded-[2rem] text-center">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Fuente de Datos</p>
-                <p id="fuente-dato" class="text-[10px] font-black text-slate-400 uppercase italic">Iniciando...</p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Última Consulta</p>
+                <p id="hora-consulta" class="text-xl font-black text-emerald-400">--:--:--</p>
             </div>
         </div>
 
         <footer class="mt-12 text-center">
-            <p id="fecha-consulta" class="text-slate-600 text-[10px] font-bold uppercase tracking-widest">Última consulta: --:--:--</p>
-            <p class="text-blue-900 font-black text-[9px] mt-4 uppercase tracking-[0.5em]">Dashboard Pro - Marco Carrasco</p>
+            <p class="text-blue-900 font-black text-[9px] uppercase tracking-[0.5em]">Dashboard Pro - Marco Carrasco</p>
         </footer>
     </div>
 
     <script>
         async function cargarDatos() {
-            // --- PASO 1: CARGA INSTANTÁNEA (DESDE TU GITHUB) ---
             try {
-                const resLocal = await fetch('./onpe_data.json?v=' + Date.now());
-                if (resLocal.ok) {
-                    const local = await resLocal.json();
-                    const d = local.data || local;
-                    renderizar(d.candidatos, "MEMORIA LOCAL (VELOZ)", d.actasContabilizadas);
-                }
-            } catch (err) { console.log("Carga inicial fallida"); }
-
-            // --- PASO 2: ENLACE EN VIVO (SIN DEMORAS EN PANTALLA) ---
-            setTimeout(async () => {
-                const urlONPE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion";
-                const proxy = "https://api.allorigins.win/get?url=" + encodeURIComponent(urlONPE);
-
-                try {
-                    const response = await fetch(proxy + "&t=" + Date.now());
-                    const json = await response.json();
-                    const dataRaw = JSON.parse(json.contents);
-                    const lista = dataRaw.data || dataRaw.participantes;
-
-                    if (lista && lista.length > 0) {
-                        // Si el enlace a la ONPE funciona, actualizamos la vista con lo más nuevo
-                        renderizar(lista, "ONPE EN VIVO (ENLAZADO)");
-                    }
-                } catch (e) {
-                    console.log("No se pudo enlazar en vivo, manteniendo data de memoria.");
-                }
-            }, 500); // Retraso de medio segundo para priorizar la carga visual
-        }
-
-        function renderizar(lista, fuente, actasManual = null) {
-            if (!lista || lista.length === 0) return;
-
-            // 1. Actas Contabilizadas
-            const avance = actasManual || (lista[0].porcentajeActasContabilizadas || lista[0].avance || "93.359");
-            document.getElementById('porcentaje-actas').innerText = avance + '%';
-            
-            // 2. Procesar y Ordenar Candidatos
-            const ordenados = lista.sort((a,b) => (b.totalVotosValidos || b.votosTotales) - (a.totalVotosValidos || a.votosTotales));
-            const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
-            
-            const cont = document.getElementById('contenedor-candidatos');
-            cont.innerHTML = ''; // Limpiamos el loader
-            
-            ordenados.slice(0,5).forEach((c, i) => {
-                const nombre = c.nombreCandidato || c.nombreAgrupacionPolitica || c.nombre || "Candidato";
-                const votos = c.totalVotosValidos || c.votosTotales || c.votos || 0;
-                const porc = c.porcentajeVotosValidos || c.porcentaje || "0.00";
+                const res = await fetch('./onpe_data.json?v=' + Date.now());
+                const json = await res.json();
                 
-                cont.innerHTML += `
-                    <div>
-                        <div class="flex justify-between items-end mb-4">
-                            <div class="flex flex-col">
-                                <span class="text-xl font-black italic tracking-tighter uppercase leading-none text-white">${nombre}</span>
-                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">${Number(votos).toLocaleString()} Votos</span>
-                            </div>
-                            <span class="text-3xl font-black text-white">${porc}%</span>
-                        </div>
-                        <div class="w-full bg-slate-900 rounded-full h-4 p-1 border border-white/5 overflow-hidden text-white">
-                            <div class="bar-anim h-full rounded-full" style="width: ${porc}%; background-color: ${colores[i]}; box-shadow: 0 0 20px ${colores[i]}44"></div>
-                        </div>
-                    </div>`;
-            });
+                // 1. Mostrar Fecha de Actualización
+                document.getElementById('fecha-onpe').innerText = "ACTUALIZACIÓN ONPE: " + (json.ultima_sincro || "Reciente");
+                document.getElementById('hora-consulta').innerText = new Date().toLocaleTimeString();
 
-            // 3. Textos de Estado y Fecha
-            document.getElementById('fuente-dato').innerText = fuente;
-            const ahora = new Date().toLocaleTimeString('es-PE');
-            document.getElementById('fecha-onpe').innerText = "ÚLTIMA ACTUALIZACIÓN: " + ahora;
-            document.getElementById('fecha-consulta').innerText = 'CONSULTA REALIZADA: ' + ahora;
+                // 2. Procesar los 5 primeros candidatos (ordenados por votos de mayor a menor)
+                const lista = json.data;
+                const ordenados = lista.sort((a,b) => b.totalVotosValidos - a.totalVotosValidos);
+                const top5 = ordenados.slice(0, 5);
+
+                const cont = document.getElementById('contenedor-candidatos');
+                cont.innerHTML = ''; 
+
+                const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
+
+                top5.forEach((c, i) => {
+                    cont.innerHTML += `
+                        <div>
+                            <div class="flex justify-between items-end mb-4">
+                                <div class="flex flex-col">
+                                    <span class="text-xl font-black italic tracking-tighter uppercase leading-none text-white">${c.nombreCandidato}</span>
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">${c.nombreAgrupacionPolitica}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-3xl font-black text-white">${c.porcentajeVotosValidos}%</span>
+                                    <p class="text-[9px] font-bold text-slate-500">${Number(c.totalVotosValidos).toLocaleString()} VOTOS</p>
+                                </div>
+                            </div>
+                            <div class="w-full bg-slate-900 rounded-full h-4 p-1 border border-white/5 overflow-hidden">
+                                <div class="bar-anim h-full rounded-full" style="width: ${c.porcentajeVotosValidos}%; background-color: ${colores[i]}; box-shadow: 0 0 20px ${colores[i]}44"></div>
+                            </div>
+                        </div>`;
+                });
+
+            } catch (err) {
+                console.error("Error cargando JSON:", err);
+                document.getElementById('estado-texto').innerText = "ERROR";
+            }
         }
 
-        // Iniciar el proceso
         cargarDatos();
     </script>
 </body>
