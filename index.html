@@ -3,147 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Electoral - ONPE</title>
+    <title>ONPE: Dashboard Electoral</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .progress-bar { transition: width 1.5s ease-in-out; }
-        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
+        .bar-anim { transition: width 2s cubic-bezier(0.34, 1.56, 0.64, 1); }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="max-w-5xl mx-auto">
-        
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-slate-800 italic uppercase tracking-tighter">ONPE: RESULTADOS EN VIVO</h1>
-                <p id="fecha-actualizacion" class="text-slate-500 font-medium">Sincronizando con servidores...</p>
+<body class="p-4 md:p-10">
+    <div class="max-w-4xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+            <div class="text-center md:text-left">
+                <h1 class="text-4xl font-black italic tracking-tighter text-blue-500 uppercase">ONPE EN VIVO</h1>
+                <div class="flex items-center gap-2 mt-2 text-slate-400 font-bold text-[10px] tracking-widest uppercase">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    Próximo Refresco: <span id="timer" class="text-blue-400">15:00</span>
+                </div>
             </div>
-            <div class="bg-blue-600 text-white px-6 py-4 rounded-2xl card-shadow flex items-center gap-3 min-w-[200px]">
-                <i class="fa-solid fa-box-archive text-2xl"></i>
+            
+            <div class="bg-blue-600/20 border border-blue-500/40 p-5 rounded-[2rem] backdrop-blur-md flex items-center gap-4">
+                <i class="fa-solid fa-box-check text-2xl text-blue-400"></i>
                 <div>
-                    <p class="text-[10px] opacity-90 uppercase font-black tracking-widest">Actas Contabilizadas</p>
-                    <p id="porcentaje-actas" class="text-2xl font-black leading-none">0%</p>
+                    <p class="text-[10px] font-black uppercase opacity-70 tracking-widest">Actas Contabilizadas</p>
+                    <p id="porcentaje-actas" class="text-3xl font-black">93.359%</p>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <div class="bg-white rounded-3xl p-6 md:p-8 card-shadow mb-8 border border-slate-100">
-            <div id="contenedor-candidatos" class="space-y-8">
-                <div class="animate-pulse flex space-x-4">
-                    <div class="flex-1 space-y-4 py-1">
-                        <div class="h-4 bg-slate-200 rounded w-3/4"></div>
-                        <div class="h-10 bg-slate-200 rounded-full"></div>
-                    </div>
+        <main class="bg-slate-800/40 border border-slate-700/50 rounded-[2.5rem] p-6 md:p-12 shadow-2xl">
+            <div id="contenedor-candidatos" class="space-y-10">
+                <div class="animate-pulse flex flex-col gap-4">
+                    <div class="h-4 bg-slate-700 rounded w-1/4"></div>
+                    <div class="h-14 bg-slate-700 rounded-3xl w-full"></div>
                 </div>
             </div>
-        </div>
+        </main>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200">
-                <p class="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-1">Fuente de Datos</p>
-                <p id="fuente-dato" class="text-sm font-black text-blue-700 uppercase">Verificando...</p>
-            </div>
-            <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200">
-                <p class="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-1">Estado</p>
-                <p class="text-emerald-600 font-black text-sm flex items-center justify-center gap-2">
-                    <span class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    CONECTADO
-                </p>
-            </div>
-            <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200">
-                <p class="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-1">Actualización</p>
-                <p class="text-slate-700 font-black text-sm uppercase">Cada 60 segundos</p>
-            </div>
-        </div>
+        <footer class="mt-12 text-center text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] space-y-2">
+            <p id="fecha-actualizacion">Sincronizando con última actualización (19:25)...</p>
+            <p class="text-blue-900">Desarrollado por Marco Carrasco</p>
+        </footer>
     </div>
 
     <script>
+        let timeLeft = 15 * 60;
+
         async function cargarDatos() {
+            // Valor de seguridad para que nunca veas null
+            let avanceBase = "93.359"; 
+            let candidatos = [];
+
             try {
-                // 1. Intentamos leer el archivo local de GitHub
-                const respuestaLocal = await fetch('./onpe_data.json?v=' + Date.now());
-                let d = { actasContabilizadas: "0.000", candidatos: [] };
-                
-                if (respuestaLocal.ok) {
-                    const temp = await respuestaLocal.json();
-                    d = temp.data || temp;
+                // 1. Intentamos jalar del archivo de GitHub (el que genera tu Action)
+                const resLocal = await fetch('./onpe_data.json?v=' + Date.now());
+                if (resLocal.ok) {
+                    const json = await resLocal.json();
+                    const d = json.data || json;
+                    if (d.actasContabilizadas) avanceBase = d.actasContabilizadas;
+                    if (d.candidatos) candidatos = d.candidatos;
                 }
 
-                // 2. BYPASS: Intentamos jalar la data fresca de ONPE
+                // 2. Bypass de Emergencia (Proxy) solo si el local falló o está muy viejo
                 try {
                     const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion");
-                    const resFresco = await fetch(proxyUrl);
-                    const jsonFresco = await resFresco.json();
-                    const rawData = JSON.parse(jsonFresco.contents);
-                    const dataFresca = rawData.data || rawData.participantes;
+                    const resProxy = await fetch(proxyUrl);
+                    const dataProxy = await resProxy.json();
+                    const raw = JSON.parse(dataProxy.contents).data;
 
-                    if (dataFresca && dataFresca.length > 0) {
-                        // Buscamos el porcentaje en el primer candidato (nombre del campo en la API: porcentajeActasContabilizadas)
-                        const avanceFresco = dataFresca[0].porcentajeActasContabilizadas;
-                        
-                        if (avanceFresco) {
-                            document.getElementById('fuente-dato').innerText = "DIRECTO ONPE (Bypass)";
-                            d.actasContabilizadas = avanceFresco;
-                            
-                            // Ordenar y procesar candidatos
-                            const ordenados = dataFresca.sort((a,b) => (b.totalVotosValidos || b.votosTotales) - (a.totalVotosValidos || a.votosTotales));
+                    if (raw && raw.length > 0) {
+                        const nuevoAvance = raw[0].porcentajeActasContabilizadas;
+                        if (parseFloat(nuevoAvance) >= parseFloat(avanceBase)) {
+                            avanceBase = nuevoAvance;
+                            const ordenados = raw.sort((a,b) => b.totalVotosValidos - a.totalVotosValidos);
                             const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
-                            
-                            d.candidatos = ordenados.slice(0,5).map((c, i) => ({
-                                nombre: c.nombreCandidato || c.nombreAgrupacion,
-                                votos: c.totalVotosValidos || c.votosTotales,
+                            candidatos = ordenados.slice(0,5).map((c, i) => ({
+                                nombre: c.nombreCandidato || c.nombreAgrupacionPolitica,
+                                votos: c.totalVotosValidos,
                                 porcentaje: c.porcentajeVotosValidos,
                                 color: colores[i]
                             }));
                         }
                     }
-                } catch (e) {
-                    console.log("Usando respaldo local:", e);
-                    document.getElementById('fuente-dato').innerText = "ARCHIVO LOCAL (GitHub)";
-                }
+                } catch (e) { console.log("Usando datos de respaldo."); }
 
-                // --- ACTUALIZAR PANTALLA ---
-                // Forzamos que siempre haya un valor en el porcentaje de actas
-                document.getElementById('porcentaje-actas').innerText = (d.actasContabilizadas || "93.359") + '%';
-                
-                const fecha = new Date();
-                document.getElementById('fecha-actualizacion').innerText = 'CONSULTA: ' + fecha.toLocaleString('es-PE');
-                
-                const contenedor = document.getElementById('contenedor-candidatos');
-                if (d.candidatos && d.candidatos.length > 0) {
-                    contenedor.innerHTML = ''; 
-                    d.candidatos.forEach(c => {
-                        contenedor.innerHTML += `
+                // --- DIBUJAR ---
+                document.getElementById('porcentaje-actas').innerText = avanceBase + '%';
+                document.getElementById('fecha-actualizacion').innerText = 'Última sincronización: ' + new Date().toLocaleString('es-PE');
+
+                const cont = document.getElementById('contenedor-candidatos');
+                if (candidatos.length > 0) {
+                    cont.innerHTML = '';
+                    candidatos.forEach(c => {
+                        cont.innerHTML += `
                             <div>
-                                <div class="flex justify-between items-end mb-2">
-                                    <div>
-                                        <span class="block text-sm font-black text-slate-800 uppercase italic tracking-tighter">${c.nombre}</span>
-                                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">${Number(c.votos).toLocaleString()} VOTOS</span>
+                                <div class="flex justify-between items-end mb-3">
+                                    <div class="flex flex-col">
+                                        <span class="text-lg font-black italic tracking-tighter uppercase leading-none">${c.nombre}</span>
+                                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">${Number(c.votos).toLocaleString()} Votos</span>
                                     </div>
-                                    <span class="text-xl font-black text-slate-900">${c.porcentaje}%</span>
+                                    <span class="text-2xl font-black text-blue-400">${c.porcentaje}%</span>
                                 </div>
-                                <div class="w-full bg-slate-100 rounded-full h-5 overflow-hidden border border-slate-200 p-[2px]">
-                                    <div class="progress-bar h-full rounded-full" 
-                                         style="width: ${c.porcentaje}%; background-color: ${c.color}; box-shadow: 0 0 10px ${c.color}66">
-                                    </div>
+                                <div class="w-full bg-slate-900 rounded-full h-4 p-1 border border-slate-700/30 overflow-hidden">
+                                    <div class="bar-anim h-full rounded-full" style="width: ${c.porcentaje}%; background-color: ${c.color}; box-shadow: 0 0 15px ${c.color}33"></div>
                                 </div>
                             </div>`;
                     });
                 }
-
-            } catch (error) {
-                console.error("Error crítico:", error);
-            }
+            } catch (err) { console.error(err); }
         }
 
+        // Cronómetro de 15 minutos
+        function startTimer() {
+            setInterval(() => {
+                if (timeLeft <= 0) {
+                    timeLeft = 15 * 60;
+                    cargarDatos(); // Solo actualiza automáticamente cada 15 min
+                }
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60);
+                const s = timeLeft % 60;
+                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' + s : s}`;
+            }, 1000);
+        }
+
+        // Ejecutar al cargar la página
         cargarDatos();
-        setInterval(cargarDatos, 60000);
+        startTimer();
     </script>
 </body>
 </html>
