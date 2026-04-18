@@ -38,7 +38,7 @@
                 Top 5 Presidencial
             </h2>
             <div id="contenedor-candidatos" class="space-y-12">
-                </div>
+            </div>
         </main>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -64,12 +64,32 @@
                 const json = await res.json();
                 
                 if (json.data && json.data.length > 0) {
-                    // 1. Mostrar fecha de sincronización
-                    document.getElementById('fecha-onpe').innerText = "ACTUALIZACIÓN ONPE: " + (json.ultima_sincro || "HOY");
-
-                    // 2. ORDENAR DE MAYOR A MENOR (Clave para que no salgan los de 0.05%)
-                    const ordenados = json.data.sort((a, b) => b.totalVotosValidos - a.totalVotosValidos);
                     
+                    // --- LÓGICA DE FECHA FORMATO ONPE ---
+                    // Usamos la fecha de sincronización que guardó el robot
+                    let fechaMostrada = "";
+                    if (json.ultima_sincro) {
+                        // Si el robot guardó la fecha (ej: "18/04/2026 13:15:00")
+                        // la formateamos para que incluya el "A LAS" y "p. m."
+                        const partes = json.ultima_sincro.split(' ');
+                        const fechaPart = partes[0];
+                        const horaPart = partes[1];
+                        
+                        // Convertir hora 24h a formato p.m. / a.m.
+                        let [hrs, mins, secs] = horaPart.split(':');
+                        const ampm = hrs >= 12 ? 'p. m.' : 'a. m.';
+                        hrs = hrs % 12 || 12;
+                        const horaFinal = hrs.toString().padStart(2, '0') + ':' + mins + ':' + secs + ' ' + ampm;
+                        
+                        fechaMostrada = fechaPart + " A LAS " + horaFinal;
+                    } else {
+                        fechaMostrada = new Date().toLocaleDateString('es-PE') + " A LAS " + new Date().toLocaleTimeString('es-PE', {hour12: true}).replace("pm", "p. m.").replace("am", "a. m.");
+                    }
+                    
+                    document.getElementById('fecha-onpe').innerText = "ACTUALIZADO AL " + fechaMostrada;
+
+                    // 2. ORDENAR DE MAYOR A MENOR
+                    const ordenados = json.data.sort((a, b) => b.totalVotosValidos - a.totalVotosValidos);
                     const top5 = ordenados.slice(0, 5);
 
                     // 3. Cuadro azul con el % del ganador
@@ -99,7 +119,7 @@
                     });
 
                     document.getElementById('estado-robot').innerText = "SINCRONIZADO";
-                    document.getElementById('hora-consulta').innerText = new Date().toLocaleTimeString('es-PE');
+                    document.getElementById('hora-consulta').innerText = new Date().toLocaleTimeString('es-PE', {hour12: true}).replace("pm", "p. m.").replace("am", "a. m.");
                 }
             } catch (err) {
                 console.error("Error leyendo JSON:", err);
