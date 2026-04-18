@@ -24,9 +24,9 @@
             </div>
             
             <div class="bg-blue-600 p-6 rounded-[2.5rem] shadow-2xl shadow-blue-900/30 flex items-center gap-4 border border-blue-400/30">
-                <i class="fa-solid fa-box-check text-3xl text-white"></i>
+                <i class="fa-solid fa-users text-3xl text-white"></i>
                 <div>
-                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest text-white">Votos del Líder</p>
+                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest text-white">Líder de Votación</p>
                     <p id="porcentaje-lider" class="text-3xl font-black leading-none mt-1 text-white">--.---%</p>
                 </div>
             </div>
@@ -43,11 +43,11 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass p-6 rounded-[2rem] text-center">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Estado del Robot</p>
-                <p id="estado-robot" class="text-xl font-black text-blue-400 italic">CONECTANDO...</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Estado de Datos</p>
+                <p id="estado-robot" class="text-xl font-black text-blue-400 italic">CARGANDO...</p>
             </div>
             <div class="glass p-6 rounded-[2rem] text-center">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Última Consulta Web</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Última Consulta</p>
                 <p id="hora-consulta" class="text-xl font-black text-emerald-400">--:--:--</p>
             </div>
         </div>
@@ -60,28 +60,25 @@
     <script>
         async function cargarDatos() {
             try {
-                // Leemos el JSON que genera tu Robot
                 const res = await fetch('./onpe_data.json?v=' + Date.now());
                 const json = await res.json();
                 
                 if (json.data && json.data.length > 0) {
-                    // 1. Mostrar fecha de sincronización del robot
-                    document.getElementById('fecha-onpe').innerText = "ACTUALIZACIÓN ONPE: " + (json.ultima_sincro || "RECIBIDA");
+                    // 1. Mostrar fecha de sincronización
+                    document.getElementById('fecha-onpe').innerText = "ACTUALIZACIÓN ONPE: " + (json.ultima_sincro || "HOY");
 
-                    // 2. LOGICA DE ORDENAMIENTO: Buscamos a los que tienen más votos
+                    // 2. ORDENAR DE MAYOR A MENOR (Clave para que no salgan los de 0.05%)
                     const ordenados = json.data.sort((a, b) => b.totalVotosValidos - a.totalVotosValidos);
                     
-                    // 3. Tomamos solo los 5 primeros
                     const top5 = ordenados.slice(0, 5);
 
-                    // 4. Actualizamos el cuadro azul con el % del que va ganando
+                    // 3. Cuadro azul con el % del ganador
                     document.getElementById('porcentaje-lider').innerText = top5[0].porcentajeVotosValidos + '%';
 
                     const cont = document.getElementById('contenedor-candidatos');
                     cont.innerHTML = ''; 
                     const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
 
-                    // 5. Dibujamos los 5 candidatos punteros
                     top5.forEach((c, i) => {
                         cont.innerHTML += `
                             <div>
@@ -101,15 +98,14 @@
                             </div>`;
                     });
 
-                    document.getElementById('estado-robot').innerText = "¡LOGRADO!";
+                    document.getElementById('estado-robot').innerText = "SINCRONIZADO";
                     document.getElementById('hora-consulta').innerText = new Date().toLocaleTimeString('es-PE');
                 }
             } catch (err) {
                 console.error("Error leyendo JSON:", err);
-                document.getElementById('estado-robot').innerText = "SIN DATOS";
+                document.getElementById('estado-robot').innerText = "ERROR JSON";
             }
         }
-
         cargarDatos();
     </script>
 </body>
