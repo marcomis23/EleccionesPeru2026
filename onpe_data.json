@@ -1,40 +1,42 @@
 {
-    "data": {
-        "fechaActualizacion": 1776472695953,
-        "actasContabilizadas": 93.255,
-        "totalActas": 92766,
-        "totalVotosValidos": 15749270,
-        "candidatos": [
-            {
-                "nombre": "KEIKO SOFIA FUJIMORI HIGUCHI",
-                "votos": 2686609,
-                "porcentaje": 17.057,
-                "color": "#f97316"
-            },
-            {
-                "nombre": "ROBERTO HELBERT SANCHEZ PALOMINO",
-                "votos": 1890573,
-                "porcentaje": 12.003,
-                "color": "#ef4444"
-            },
-            {
-                "nombre": "RAFAEL BERNARDO L\u00d3PEZ ALIAGA CAZORLA",
-                "votos": 1877816,
-                "porcentaje": 11.922,
-                "color": "#fbbf24"
-            },
-            {
-                "nombre": "JORGE NIETO MONTESINOS",
-                "votos": 1742823,
-                "porcentaje": 11.065,
-                "color": "#3b82f6"
-            },
-            {
-                "nombre": "RICARDO PABLO BELMONT CASSINELLI",
-                "votos": 1601396,
-                "porcentaje": 10.167,
-                "color": "#8b5cf6"
-            }
-        ]
+  "success": true,
+  "message": "Sincronizado correctamente",
+  "ultima_sincro": "18/04/2026 13:15:00",
+  "data": [
+    {
+      "nombreAgrupacionPolitica": "FUERZA POPULAR",
+      "codigoAgrupacionPolitica": 8,
+      "nombreCandidato": "KEIKO SOFIA FUJIMORI HIGUCHI",
+      "totalVotosValidos": 2687330,
+      "porcentajeVotosValidos": 17.056
+    },
+    {
+      "nombreAgrupacionPolitica": "JUNTOS POR EL PERÚ",
+      "codigoAgrupacionPolitica": 10,
+      "nombreCandidato": "ROBERTO HELBERT SANCHEZ PALOMINO",
+      "totalVotosValidos": 1891836,
+      "porcentajeVotosValidos": 12.007
+    },
+    {
+      "nombreAgrupacionPolitica": "RENOVACIÓN POPULAR",
+      "codigoAgrupacionPolitica": 35,
+      "nombreCandidato": "RAFAEL BERNARDO LÓPEZ ALIAGA CAZORLA",
+      "totalVotosValidos": 1878212,
+      "porcentajeVotosValidos": 11.921
+    },
+    {
+      "nombreAgrupacionPolitica": "PARTIDO DEL BUEN GOBIERNO",
+      "codigoAgrupacionPolitica": 16,
+      "nombreCandidato": "JORGE NIETO MONTESINOS",
+      "totalVotosValidos": 1743124,
+      "porcentajeVotosValidos": 11.063
+    },
+    {
+      "nombreAgrupacionPolitica": "PARTIDO CÍVICO OBRAS",
+      "codigoAgrupacionPolitica": 14,
+      "nombreCandidato": "RICARDO PABLO BELMONT CASSINELLI",
+      "totalVotosValidos": 1601846,
+      "porcentajeVotosValidos": 10.167
     }
+  ]
 }
