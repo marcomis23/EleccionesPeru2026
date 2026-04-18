@@ -7,43 +7,49 @@ from datetime import datetime
 URL_ONPE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion"
 
 def actualizar():
+    # Disfraz completo de navegador
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "es-ES,es;q=0.9",
         "Origin": "https://resultadoelectoral.onpe.gob.pe",
         "Referer": "https://resultadoelectoral.onpe.gob.pe/",
+        "Connection": "keep-alive"
     }
 
     try:
         print("Iniciando actualización con camuflaje de alto nivel...")
         session = requests.Session()
         
-        # Paso 1: Pedir los datos (AQUÍ YA TENEMOS EL 200)
+        # Primero tocamos la puerta principal
+        session.get("https://resultadoelectoral.onpe.gob.pe/", headers=headers, timeout=20)
+        time.sleep(2)
+        
+        # Pedimos los datos
         r = session.get(URL_ONPE, headers=headers, timeout=30)
         print(f"Respuesta del servidor: {r.status_code}")
         
         if r.status_code == 200:
-            # CORRECCIÓN AQUÍ: Obtenemos el texto crudo primero
-            contenido = r.text
-            if not contenido:
-                print("El servidor respondió 200 pero el contenido está vacío.")
-                return
-
-            # Convertimos el texto a JSON
-            json_onpe = json.loads(contenido)
+            # Intentamos obtener el JSON directamente
+            try:
+                json_onpe = r.json()
+            except:
+                # Si falla, limpiamos el texto por si hay espacios raros
+                print("Limpiando respuesta para procesar...")
+                json_onpe = json.loads(r.text.strip())
             
-            # Buscamos la lista de candidatos (puede estar en 'data' o 'participantes')
+            # Buscamos la lista de candidatos
             lista = json_onpe.get('data', json_onpe.get('participantes', []))
             
             if lista:
-                # Ordenamos candidatos por votos
+                # Ordenar por votos
                 ordenados = sorted(lista, key=lambda x: x.get('totalVotosValidos', 0) or x.get('votosTotales', 0), reverse=True)
                 
-                # Sacamos el avance del primer candidato
+                # Extraer avance (usando varios nombres posibles)
                 p = ordenados[0]
                 avance = p.get('porcentajeActasContabilizadas') or p.get('avance') or "93.359"
                 
-                # Preparamos el Top 5
+                # Top 5
                 top_5 = []
                 colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"]
                 
@@ -55,7 +61,7 @@ def actualizar():
                         "color": colores[i]
                     })
 
-                # Guardamos el archivo final
+                # Datos finales
                 onpe_final = {
                     "data": {
                         "fechaActualizacion": int(datetime.now().timestamp() * 1000),
@@ -69,11 +75,11 @@ def actualizar():
                 with open('onpe_data.json', 'w') as f:
                     json.dump(onpe_final, f, indent=4)
                 
-                print(f"¡LOGRADO! Datos guardados. Avance: {avance}%")
+                print(f"¡LOGRADO! Avance actualizado al {avance}%")
             else:
-                print("No se encontró la lista de candidatos dentro del JSON.")
+                print("El servidor no envió la lista de candidatos.")
         else:
-            print(f"Error de conexión: {r.status_code}")
+            print(f"Bloqueo de servidor: {r.status_code}")
 
     except Exception as e:
         print(f"Error al procesar los datos: {e}")
