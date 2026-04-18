@@ -3,47 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ONPE: Dashboard Electoral</title>
+    <title>ONPE: Dashboard Electoral Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
         .bar-anim { transition: width 2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body class="p-4 md:p-10">
     <div class="max-w-4xl mx-auto">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
             <div class="text-center md:text-left">
                 <h1 class="text-4xl font-black italic tracking-tighter text-blue-500 uppercase">ONPE EN VIVO</h1>
                 <div class="flex items-center gap-2 mt-2 text-slate-400 font-bold text-[10px] tracking-widest uppercase">
                     <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                    Próximo Refresco: <span id="timer" class="text-blue-400">15:00</span>
+                    Siguiente actualización: <span id="timer" class="text-blue-400">15:00</span>
                 </div>
             </div>
             
-            <div class="bg-blue-600/20 border border-blue-500/40 p-5 rounded-[2rem] backdrop-blur-md flex items-center gap-4">
-                <i class="fa-solid fa-box-check text-2xl text-blue-400"></i>
+            <div class="bg-blue-600 p-6 rounded-[2.5rem] shadow-2xl shadow-blue-900/30 flex items-center gap-4 border border-blue-400/30">
+                <i class="fa-solid fa-box-check text-3xl"></i>
                 <div>
-                    <p class="text-[10px] font-black uppercase opacity-70 tracking-widest">Actas Contabilizadas</p>
-                    <p id="porcentaje-actas" class="text-3xl font-black">93.359%</p>
+                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest">Actas Contabilizadas</p>
+                    <p id="porcentaje-actas" class="text-3xl font-black leading-none mt-1">93.359%</p>
                 </div>
             </div>
         </header>
 
-        <main class="bg-slate-800/40 border border-slate-700/50 rounded-[2.5rem] p-6 md:p-12 shadow-2xl">
-            <div id="contenedor-candidatos" class="space-y-10">
+        <main class="glass rounded-[3rem] p-6 md:p-12 mb-8 shadow-2xl">
+            <h2 class="text-sm font-black text-slate-500 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
+                <span class="w-8 h-[2px] bg-blue-500"></span>
+                Top 5 Presidencial
+            </h2>
+            <div id="contenedor-candidatos" class="space-y-12">
                 <div class="animate-pulse flex flex-col gap-4">
                     <div class="h-4 bg-slate-700 rounded w-1/4"></div>
-                    <div class="h-14 bg-slate-700 rounded-3xl w-full"></div>
+                    <div class="h-12 bg-slate-700 rounded-3xl"></div>
                 </div>
             </div>
         </main>
 
-        <footer class="mt-12 text-center text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] space-y-2">
-            <p id="fecha-actualizacion">Sincronizando con última actualización (19:25)...</p>
-            <p class="text-blue-900">Desarrollado por Marco Carrasco</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="glass p-6 rounded-[2rem] text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Votos Válidos</p>
+                <p id="votos-validos" class="text-xl font-black text-blue-400">0</p>
+            </div>
+            <div class="glass p-6 rounded-[2rem] text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Participación</p>
+                <p id="participacion" class="text-xl font-black text-emerald-400">0%</p>
+            </div>
+            <div class="glass p-6 rounded-[2rem] text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Fuente</p>
+                <p id="fuente-dato" class="text-[10px] font-black text-slate-400 uppercase italic">Sincronizando...</p>
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center">
+            <p id="fecha-actualizacion" class="text-slate-600 text-[10px] font-bold uppercase tracking-widest">Cargando fecha...</p>
+            <p class="text-blue-900 font-black text-[9px] mt-4 uppercase tracking-[0.5em]">Dashboard Pro - Marco Carrasco</p>
         </footer>
     </div>
 
@@ -51,21 +71,24 @@
         let timeLeft = 15 * 60;
 
         async function cargarDatos() {
-            // Valor de seguridad para que nunca veas null
-            let avanceBase = "93.359"; 
+            let actas = "93.359"; 
             let candidatos = [];
+            let validos = "15,749,270";
+            let participacion = "69.136%";
 
             try {
-                // 1. Intentamos jalar del archivo de GitHub (el que genera tu Action)
+                // 1. Intentar Local
                 const resLocal = await fetch('./onpe_data.json?v=' + Date.now());
                 if (resLocal.ok) {
                     const json = await resLocal.json();
                     const d = json.data || json;
-                    if (d.actasContabilizadas) avanceBase = d.actasContabilizadas;
+                    if (d.actasContabilizadas) actas = d.actasContabilizadas;
                     if (d.candidatos) candidatos = d.candidatos;
+                    if (d.totalVotosValidos) validos = Number(d.totalVotosValidos).toLocaleString();
+                    if (d.participacionCiudadana) participacion = d.participacionCiudadana + '%';
                 }
 
-                // 2. Bypass de Emergencia (Proxy) solo si el local falló o está muy viejo
+                // 2. Bypass Proxy (solo refresca si hay algo nuevo)
                 try {
                     const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion");
                     const resProxy = await fetch(proxyUrl);
@@ -74,8 +97,9 @@
 
                     if (raw && raw.length > 0) {
                         const nuevoAvance = raw[0].porcentajeActasContabilizadas;
-                        if (parseFloat(nuevoAvance) >= parseFloat(avanceBase)) {
-                            avanceBase = nuevoAvance;
+                        if (parseFloat(nuevoAvance) >= parseFloat(actas)) {
+                            actas = nuevoAvance;
+                            document.getElementById('fuente-dato').innerText = "Directo ONPE";
                             const ordenados = raw.sort((a,b) => b.totalVotosValidos - a.totalVotosValidos);
                             const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
                             candidatos = ordenados.slice(0,5).map((c, i) => ({
@@ -86,11 +110,13 @@
                             }));
                         }
                     }
-                } catch (e) { console.log("Usando datos de respaldo."); }
+                } catch (e) { document.getElementById('fuente-dato').innerText = "GitHub Respaldo"; }
 
-                // --- DIBUJAR ---
-                document.getElementById('porcentaje-actas').innerText = avanceBase + '%';
-                document.getElementById('fecha-actualizacion').innerText = 'Última sincronización: ' + new Date().toLocaleString('es-PE');
+                // --- PINTAR ---
+                document.getElementById('porcentaje-actas').innerText = actas + '%';
+                document.getElementById('votos-validos').innerText = validos;
+                document.getElementById('participacion').innerText = participacion;
+                document.getElementById('fecha-actualizacion').innerText = 'CONSULTA: ' + new Date().toLocaleString('es-PE');
 
                 const cont = document.getElementById('contenedor-candidatos');
                 if (candidatos.length > 0) {
@@ -98,15 +124,15 @@
                     candidatos.forEach(c => {
                         cont.innerHTML += `
                             <div>
-                                <div class="flex justify-between items-end mb-3">
+                                <div class="flex justify-between items-end mb-4">
                                     <div class="flex flex-col">
-                                        <span class="text-lg font-black italic tracking-tighter uppercase leading-none">${c.nombre}</span>
-                                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">${Number(c.votos).toLocaleString()} Votos</span>
+                                        <span class="text-xl font-black italic tracking-tighter uppercase leading-none text-white">${c.nombre}</span>
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">${Number(c.votos).toLocaleString()} Votos</span>
                                     </div>
-                                    <span class="text-2xl font-black text-blue-400">${c.porcentaje}%</span>
+                                    <span class="text-3xl font-black text-white">${c.porcentaje}<span class="text-sm opacity-50 ml-1">%</span></span>
                                 </div>
-                                <div class="w-full bg-slate-900 rounded-full h-4 p-1 border border-slate-700/30 overflow-hidden">
-                                    <div class="bar-anim h-full rounded-full" style="width: ${c.porcentaje}%; background-color: ${c.color}; box-shadow: 0 0 15px ${c.color}33"></div>
+                                <div class="w-full bg-slate-900 rounded-full h-4 p-1 border border-white/5 overflow-hidden">
+                                    <div class="bar-anim h-full rounded-full" style="width: ${c.porcentaje}%; background-color: ${c.color}; box-shadow: 0 0 20px ${c.color}44"></div>
                                 </div>
                             </div>`;
                     });
@@ -114,12 +140,11 @@
             } catch (err) { console.error(err); }
         }
 
-        // Cronómetro de 15 minutos
         function startTimer() {
             setInterval(() => {
                 if (timeLeft <= 0) {
                     timeLeft = 15 * 60;
-                    cargarDatos(); // Solo actualiza automáticamente cada 15 min
+                    cargarDatos();
                 }
                 timeLeft--;
                 const m = Math.floor(timeLeft / 60);
@@ -128,7 +153,6 @@
             }, 1000);
         }
 
-        // Ejecutar al cargar la página
         cargarDatos();
         startTimer();
     </script>
