@@ -19,15 +19,15 @@
             <div class="text-center md:text-left">
                 <h1 class="text-4xl font-black italic tracking-tighter text-blue-500 uppercase leading-none">ONPE EN VIVO</h1>
                 <p id="fecha-onpe" class="text-slate-400 font-bold text-[10px] tracking-widest uppercase mt-3">
-                    Sincronizando...
+                    Sincronizando datos...
                 </p>
             </div>
             
             <div class="bg-blue-600 p-6 rounded-[2.5rem] shadow-2xl shadow-blue-900/30 flex items-center gap-4 border border-blue-400/30">
-                <i class="fa-solid fa-box-check text-3xl"></i>
+                <i class="fa-solid fa-users text-3xl text-white"></i>
                 <div>
-                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest">Estado</p>
-                    <p id="estado-texto" class="text-2xl font-black leading-none mt-1">CONECTADO</p>
+                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest text-white">Resultado General</p>
+                    <p class="text-2xl font-black leading-none mt-1 text-white uppercase">Candidatos</p>
                 </div>
             </div>
         </header>
@@ -43,62 +43,62 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass p-6 rounded-[2rem] text-center">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Fuente oficial</p>
-                <p class="text-xl font-black text-blue-400 italic">ONPE PERÚ</p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Estado de Sincronización</p>
+                <p id="fuente-dato" class="text-xl font-black text-blue-400 italic uppercase">Cargando...</p>
             </div>
             <div class="glass p-6 rounded-[2rem] text-center">
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Última Consulta</p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Última Consulta Web</p>
                 <p id="hora-consulta" class="text-xl font-black text-emerald-400">--:--:--</p>
             </div>
         </div>
 
         <footer class="mt-12 text-center">
-            <p class="text-blue-900 font-black text-[9px] uppercase tracking-[0.5em]">Dashboard Pro - Marco Carrasco</p>
+            <p class="text-blue-900 font-black text-[9px] mt-4 uppercase tracking-[0.5em]">Dashboard Pro - Marco Carrasco</p>
         </footer>
     </div>
 
     <script>
         async function cargarDatos() {
             try {
+                // Cargamos el JSON exacto que me pasaste
                 const res = await fetch('./onpe_data.json?v=' + Date.now());
                 const json = await res.json();
                 
-                // 1. Mostrar Fecha de Actualización
-                document.getElementById('fecha-onpe').innerText = "ACTUALIZACIÓN ONPE: " + (json.ultima_sincro || "Reciente");
-                document.getElementById('hora-consulta').innerText = new Date().toLocaleTimeString();
+                if (json.data && json.data.length > 0) {
+                    // Actualizamos la fecha del encabezado usando la llave 'ultima_sincro' del JSON
+                    document.getElementById('fecha-onpe').innerText = "ACTUALIZACIÓN ONPE: " + (json.ultima_sincro || "18/04/2026");
+                    
+                    const cont = document.getElementById('contenedor-candidatos');
+                    cont.innerHTML = ''; 
+                    
+                    const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
 
-                // 2. Procesar los 5 primeros candidatos (ordenados por votos de mayor a menor)
-                const lista = json.data;
-                const ordenados = lista.sort((a,b) => b.totalVotosValidos - a.totalVotosValidos);
-                const top5 = ordenados.slice(0, 5);
-
-                const cont = document.getElementById('contenedor-candidatos');
-                cont.innerHTML = ''; 
-
-                const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
-
-                top5.forEach((c, i) => {
-                    cont.innerHTML += `
-                        <div>
-                            <div class="flex justify-between items-end mb-4">
-                                <div class="flex flex-col">
-                                    <span class="text-xl font-black italic tracking-tighter uppercase leading-none text-white">${c.nombreCandidato}</span>
-                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">${c.nombreAgrupacionPolitica}</span>
+                    // Como me pediste 5, el script toma los 5 que estén en el JSON
+                    json.data.slice(0, 5).forEach((c, i) => {
+                        cont.innerHTML += `
+                            <div>
+                                <div class="flex justify-between items-end mb-4">
+                                    <div class="flex flex-col">
+                                        <span class="text-xl font-black italic tracking-tighter uppercase leading-none text-white">${c.nombreCandidato}</span>
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">${c.nombreAgrupacionPolitica}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-3xl font-black text-white">${c.porcentajeVotosValidos}%</span>
+                                        <p class="text-[9px] font-bold text-slate-500">${Number(c.totalVotosValidos).toLocaleString()} VOTOS</p>
+                                    </div>
                                 </div>
-                                <div class="text-right">
-                                    <span class="text-3xl font-black text-white">${c.porcentajeVotosValidos}%</span>
-                                    <p class="text-[9px] font-bold text-slate-500">${Number(c.totalVotosValidos).toLocaleString()} VOTOS</p>
+                                <div class="w-full bg-slate-900 rounded-full h-4 p-1 border border-white/5 overflow-hidden">
+                                    <div class="bar-anim h-full rounded-full" style="width: ${c.porcentajeVotosValidos}%; background-color: ${colores[i]}; box-shadow: 0 0 20px ${colores[i]}44"></div>
                                 </div>
-                            </div>
-                            <div class="w-full bg-slate-900 rounded-full h-4 p-1 border border-white/5 overflow-hidden">
-                                <div class="bar-anim h-full rounded-full" style="width: ${c.porcentajeVotosValidos}%; background-color: ${colores[i]}; box-shadow: 0 0 20px ${colores[i]}44"></div>
-                            </div>
-                        </div>`;
-                });
+                            </div>`;
+                    });
 
+                    document.getElementById('fuente-dato').innerText = "SINCRONIZADO";
+                    document.getElementById('hora-consulta').innerText = new Date().toLocaleTimeString('es-PE');
+                }
             } catch (err) {
-                console.error("Error cargando JSON:", err);
-                document.getElementById('estado-texto').innerText = "ERROR";
+                console.error("Error:", err);
+                document.getElementById('fuente-dato').innerText = "ERROR JSON";
             }
         }
 
