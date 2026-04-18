@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ONPE: Dashboard Electoral Pro</title>
+    <title>ONPE: Dashboard Electoral</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -18,17 +18,16 @@
         <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
             <div class="text-center md:text-left">
                 <h1 class="text-4xl font-black italic tracking-tighter text-blue-500 uppercase">ONPE EN VIVO</h1>
-                <div class="flex items-center gap-2 mt-2 text-slate-400 font-bold text-[10px] tracking-widest uppercase">
-                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                    Siguiente actualización: <span id="timer" class="text-blue-400">15:00</span>
-                </div>
+                <p id="fecha-onpe" class="text-slate-400 font-bold text-[10px] tracking-widest uppercase mt-2">
+                    Sincronizando con última actualización ONPE...
+                </p>
             </div>
             
             <div class="bg-blue-600 p-6 rounded-[2.5rem] shadow-2xl shadow-blue-900/30 flex items-center gap-4 border border-blue-400/30">
                 <i class="fa-solid fa-box-check text-3xl"></i>
                 <div>
-                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest">Actas Contabilizadas</p>
-                    <p id="porcentaje-actas" class="text-3xl font-black leading-none mt-1">93.359%</p>
+                    <p class="text-[10px] font-black uppercase opacity-80 tracking-widest text-white">Actas Contabilizadas</p>
+                    <p id="porcentaje-actas" class="text-3xl font-black leading-none mt-1 text-white">93.359%</p>
                 </div>
             </div>
         </header>
@@ -49,35 +48,34 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="glass p-6 rounded-[2rem] text-center">
                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Votos Válidos</p>
-                <p id="votos-validos" class="text-xl font-black text-blue-400">0</p>
+                <p id="votos-validos" class="text-xl font-black text-blue-400">15,749,270</p>
             </div>
             <div class="glass p-6 rounded-[2rem] text-center">
                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Participación</p>
-                <p id="participacion" class="text-xl font-black text-emerald-400">0%</p>
+                <p id="participacion" class="text-xl font-black text-emerald-400">69.136%</p>
             </div>
             <div class="glass p-6 rounded-[2rem] text-center">
                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Fuente</p>
-                <p id="fuente-dato" class="text-[10px] font-black text-slate-400 uppercase italic">Sincronizando...</p>
+                <p id="fuente-dato" class="text-[10px] font-black text-slate-400 uppercase italic">Verificando...</p>
             </div>
         </div>
 
         <footer class="mt-12 text-center">
-            <p id="fecha-actualizacion" class="text-slate-600 text-[10px] font-bold uppercase tracking-widest">Cargando fecha...</p>
+            <p id="fecha-consulta" class="text-slate-600 text-[10px] font-bold uppercase tracking-widest">Última consulta: --:--:--</p>
             <p class="text-blue-900 font-black text-[9px] mt-4 uppercase tracking-[0.5em]">Dashboard Pro - Marco Carrasco</p>
         </footer>
     </div>
 
     <script>
-        let timeLeft = 15 * 60;
-
         async function cargarDatos() {
             let actas = "93.359"; 
             let candidatos = [];
             let validos = "15,749,270";
             let participacion = "69.136%";
+            let fechaONPE = "Cargando...";
 
             try {
-                // 1. Intentar Local
+                // 1. Intentar cargar desde el archivo generado por el Action
                 const resLocal = await fetch('./onpe_data.json?v=' + Date.now());
                 if (resLocal.ok) {
                     const json = await resLocal.json();
@@ -86,9 +84,13 @@
                     if (d.candidatos) candidatos = d.candidatos;
                     if (d.totalVotosValidos) validos = Number(d.totalVotosValidos).toLocaleString();
                     if (d.participacionCiudadana) participacion = d.participacionCiudadana + '%';
+                    // Usamos la fecha que guardó el scrapper
+                    if (d.fechaActualizacion) {
+                        fechaONPE = "ACTUALIZACIÓN ONPE: " + new Date(d.fechaActualizacion).toLocaleString('es-PE');
+                    }
                 }
 
-                // 2. Bypass Proxy (solo refresca si hay algo nuevo)
+                // 2. Bypass de Emergencia (Proxy)
                 try {
                     const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent("https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion");
                     const resProxy = await fetch(proxyUrl);
@@ -96,27 +98,29 @@
                     const raw = JSON.parse(dataProxy.contents).data;
 
                     if (raw && raw.length > 0) {
-                        const nuevoAvance = raw[0].porcentajeActasContabilizadas;
-                        if (parseFloat(nuevoAvance) >= parseFloat(actas)) {
+                        const nuevoAvance = raw[0].porcentajeActasContabilizadas || raw[0].avance;
+                        if (nuevoAvance && parseFloat(nuevoAvance) >= parseFloat(actas)) {
                             actas = nuevoAvance;
                             document.getElementById('fuente-dato').innerText = "Directo ONPE";
-                            const ordenados = raw.sort((a,b) => b.totalVotosValidos - a.totalVotosValidos);
+                            
+                            const ordenados = raw.sort((a,b) => (b.totalVotosValidos || b.votosTotales) - (a.totalVotosValidos || a.votosTotales));
                             const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
                             candidatos = ordenados.slice(0,5).map((c, i) => ({
                                 nombre: c.nombreCandidato || c.nombreAgrupacionPolitica,
-                                votos: c.totalVotosValidos,
+                                votos: c.totalVotosValidos || c.votosTotales,
                                 porcentaje: c.porcentajeVotosValidos,
                                 color: colores[i]
                             }));
                         }
                     }
-                } catch (e) { document.getElementById('fuente-dato').innerText = "GitHub Respaldo"; }
+                } catch (e) { document.getElementById('fuente-dato').innerText = "Archivo GitHub"; }
 
-                // --- PINTAR ---
+                // --- PINTAR DATOS EN PANTALLA ---
                 document.getElementById('porcentaje-actas').innerText = actas + '%';
                 document.getElementById('votos-validos').innerText = validos;
                 document.getElementById('participacion').innerText = participacion;
-                document.getElementById('fecha-actualizacion').innerText = 'CONSULTA: ' + new Date().toLocaleString('es-PE');
+                document.getElementById('fecha-onpe').innerText = fechaONPE;
+                document.getElementById('fecha-consulta').innerText = 'ÚLTIMA CONSULTA: ' + new Date().toLocaleTimeString('es-PE');
 
                 const cont = document.getElementById('contenedor-candidatos');
                 if (candidatos.length > 0) {
@@ -140,21 +144,8 @@
             } catch (err) { console.error(err); }
         }
 
-        function startTimer() {
-            setInterval(() => {
-                if (timeLeft <= 0) {
-                    timeLeft = 15 * 60;
-                    cargarDatos();
-                }
-                timeLeft--;
-                const m = Math.floor(timeLeft / 60);
-                const s = timeLeft % 60;
-                document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' + s : s}`;
-            }, 1000);
-        }
-
+        // Cargamos al abrir la página. No hay autorefresco agresivo para evitar bloqueos.
         cargarDatos();
-        startTimer();
     </script>
 </body>
 </html>
