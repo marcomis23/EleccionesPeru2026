@@ -18,9 +18,15 @@
         <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
             <div class="text-center md:text-left">
                 <h1 class="text-4xl font-black italic tracking-tighter text-blue-500 uppercase leading-none">ONPE EN VIVO</h1>
-                <p id="fecha-onpe" class="text-slate-400 font-bold text-[10px] tracking-widest uppercase mt-3">
-                    Sincronizando datos...
+                <p id="fecha-onpe" class="text-blue-400 font-bold text-[10px] tracking-widest uppercase mt-3">
+                    ACTUALIZACIÓN ONPE: --
                 </p>
+            </div>
+
+            <div class="glass p-5 rounded-[2rem] border-b-2 border-blue-500">
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Actas Contabilizadas</p>
+                <p id="txt-actas" class="text-3xl font-black text-white">--.---%</p>
+                <p id="txt-total-actas" class="text-[8px] text-slate-500 font-bold mt-1 uppercase">Total actas: --</p>
             </div>
             
             <div class="bg-blue-600 p-6 rounded-[2.5rem] shadow-2xl shadow-blue-900/30 flex items-center gap-4 border border-blue-400/30">
@@ -34,17 +40,15 @@
 
         <main class="glass rounded-[3rem] p-6 md:p-12 mb-8 shadow-2xl">
             <h2 class="text-sm font-black text-slate-500 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
-                <span class="w-8 h-[2px] bg-blue-500"></span>
-                Top 5 Presidencial
+                <span class="w-8 h-[2px] bg-blue-500"></span> Top 5 Presidencial
             </h2>
-            <div id="contenedor-candidatos" class="space-y-12">
-                </div>
+            <div id="contenedor-candidatos" class="space-y-12"></div>
         </main>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="glass p-6 rounded-[2rem] text-center">
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Estado de Datos</p>
-                <p id="estado-robot" class="text-xl font-black text-blue-400 italic">CARGANDO...</p>
+                <p id="estado-robot" class="text-xl font-black text-blue-400 italic uppercase">CARGANDO...</p>
             </div>
             <div class="glass p-6 rounded-[2rem] text-center">
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Última Consulta</p>
@@ -64,15 +68,16 @@
                 const json = await res.json();
                 
                 if (json.data && json.data.length > 0) {
-                    // 1. Mostrar fecha de sincronización
-                    document.getElementById('fecha-onpe').innerText = "ACTUALIZACIÓN ONPE: " + (json.ultima_sincro || "HOY");
-
-                    // 2. ORDENAR DE MAYOR A MENOR (Clave para que no salgan los de 0.05%)
-                    const ordenados = json.data.sort((a, b) => b.totalVotosValidos - a.totalVotosValidos);
+                    document.getElementById('fecha-onpe').innerText = "ACTUALIZACIÓN ONPE: " + (json.ultima_sincro || "--");
                     
+                    if(json.resumen) {
+                        document.getElementById('txt-actas').innerText = json.resumen.actasContabilizadas + "%";
+                        document.getElementById('txt-total-actas').innerText = "TOTAL DE ACTAS: " + Number(json.resumen.totalActas).toLocaleString();
+                    }
+
+                    const ordenados = json.data.sort((a, b) => b.totalVotosValidos - a.totalVotosValidos);
                     const top5 = ordenados.slice(0, 5);
 
-                    // 3. Cuadro azul con el % del ganador
                     document.getElementById('porcentaje-lider').innerText = top5[0].porcentajeVotosValidos + '%';
 
                     const cont = document.getElementById('contenedor-candidatos');
@@ -80,12 +85,20 @@
                     const colores = ["#f97316", "#ef4444", "#fbbf24", "#3b82f6", "#8b5cf6"];
 
                     top5.forEach((c, i) => {
+                        // CÁLCULO DE RESTA DE VOTOS
+                        let textoResta = "";
+                        if (i > 0) {
+                            const diferencia = ordenados[i-1].totalVotosValidos - c.totalVotosValidos;
+                            textoResta = `<p class="text-[10px] font-bold text-red-500 mt-1 uppercase tracking-tighter">▼ A ${diferencia.toLocaleString()} votos de ${ordenados[i-1].nombreCandidato.split(' ')[0]}</p>`;
+                        }
+
                         cont.innerHTML += `
                             <div>
                                 <div class="flex justify-between items-end mb-4">
                                     <div class="flex flex-col">
                                         <span class="text-xl font-black italic tracking-tighter uppercase leading-none text-white">${c.nombreCandidato}</span>
                                         <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">${c.nombreAgrupacionPolitica}</span>
+                                        ${textoResta}
                                     </div>
                                     <div class="text-right">
                                         <span class="text-3xl font-black text-white">${c.porcentajeVotosValidos}%</span>
@@ -102,11 +115,11 @@
                     document.getElementById('hora-consulta').innerText = new Date().toLocaleTimeString('es-PE');
                 }
             } catch (err) {
-                console.error("Error leyendo JSON:", err);
                 document.getElementById('estado-robot').innerText = "ERROR JSON";
             }
         }
         cargarDatos();
+        setInterval(cargarDatos, 30000);
     </script>
 </body>
 </html>
