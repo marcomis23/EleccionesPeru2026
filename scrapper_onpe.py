@@ -3,12 +3,10 @@ import json
 import time
 from datetime import datetime
 
-# URLs de participantes y totales
 URL_ONPE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion"
 URL_TOTALES = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/totales?idEleccion=10&tipoFiltro=eleccion"
 
 def actualizar():
-    # Encabezados de alto nivel para evitar el bloqueo de GitHub Actions (Tus originales)
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -22,51 +20,49 @@ def actualizar():
     }
 
     try:
-        print("Iniciando actualización de candidatos con camuflaje...")
+        print("Iniciando actualización con camuflaje reforzado...")
         session = requests.Session()
         
-        # Primero "visitamos" la página principal para obtener cookies
-        session.get("https://resultadoelectoral.onpe.gob.pe/", headers=headers, timeout=20)
-        time.sleep(3) # Pausa humana
+        # 1. Simular entrada a la Home
+        session.get("https://resultadoelectoral.onpe.gob.pe/", headers=headers, timeout=25)
+        time.sleep(5) # Más tiempo para parecer humano
         
-        # Petición 1: Participantes
-        r = session.get(URL_ONPE, headers=headers, timeout=30)
-        time.sleep(2) # Pausa de seguridad para evitar el error de JSON
+        # 2. Pedir Participantes
+        r = session.get(URL_ONPE, headers=headers, timeout=35)
+        print(f"Status Participantes: {r.status_code}")
+        time.sleep(5) # Pausa larga entre llamadas para evitar el char 0
         
-        # Petición 2: Totales
-        r2 = session.get(URL_TOTALES, headers=headers, timeout=30)
-        
-        print(f"Respuesta Participantes: {r.status_code}")
-        print(f"Respuesta Totales: {r2.status_code}")
+        # 3. Pedir Totales
+        r2 = session.get(URL_TOTALES, headers=headers, timeout=35)
+        print(f"Status Totales: {r2.status_code}")
         
         if r.status_code == 200 and r2.status_code == 200:
-            # CORRECCIÓN: Intentamos parsear con manejo de errores robusto
-            try:
-                json_onpe = r.json()
-                json_totales = r2.json()
-            except Exception as e:
-                print(f"Error: El servidor respondió 200 pero el contenido no es JSON válido. {e}")
+            # Validamos que no estén vacíos antes de convertir
+            if not r.text or not r2.text:
+                print("Error: Una de las respuestas llegó vacía.")
                 return
 
+            json_onpe = r.json()
+            json_totales = r2.json()
+
             if "data" in json_onpe:
-                # Agregamos la hora de Lima
+                # MANTENEMOS LOS NOMBRES EXACTOS PARA EL HTML
                 json_onpe["ultima_sincro"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                 
-                # Agregamos el resumen para que el HTML lo lea
+                # Inyectamos el resumen (AQUÍ COINCIDEN LOS NOMBRES DEL JSON DE TOTALES)
                 json_onpe["resumen"] = json_totales.get("data", {})
                 
-                # Guardamos en el archivo onpe_data.json
                 with open('onpe_data.json', 'w', encoding='utf-8') as f:
                     json.dump(json_onpe, f, indent=2, ensure_ascii=False)
                 
-                print("¡LOGRADO! Datos de candidatos y totales actualizados.")
+                print("¡LOGRADO! Sincronización completa.")
             else:
-                print("El servidor respondió pero el formato de 'data' no está presente.")
+                print("Estructura de datos no encontrada.")
         else:
-            print(f"Bloqueo detectado o servidor caído. Códigos: {r.status_code} / {r2.status_code}")
+            print("Error de conexión con la ONPE.")
 
     except Exception as e:
-        print(f"Error crítico en el proceso: {e}")
+        print(f"Error crítico: {e}")
 
 if __name__ == "__main__":
     actualizar()
