@@ -3,7 +3,7 @@ import json
 import time
 from datetime import datetime
 
-# Usamos las 2 URLs (la de participantes y la nueva de totales)
+# URLs de participantes y totales
 URL_ONPE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion"
 URL_TOTALES = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/totales?idEleccion=10&tipoFiltro=eleccion"
 
@@ -29,39 +29,41 @@ def actualizar():
         session.get("https://resultadoelectoral.onpe.gob.pe/", headers=headers, timeout=20)
         time.sleep(3) # Pausa humana
         
-        # Ahora pedimos los datos reales (Link 1: Participantes)
+        # Petición 1: Participantes
         r = session.get(URL_ONPE, headers=headers, timeout=30)
+        time.sleep(2) # Pausa de seguridad para evitar el error de JSON
         
-        # AGREGADO: Pedimos los datos del Link 2 (Totales)
+        # Petición 2: Totales
         r2 = session.get(URL_TOTALES, headers=headers, timeout=30)
         
-        print(f"Respuesta del servidor: {r.status_code}")
+        print(f"Respuesta Participantes: {r.status_code}")
+        print(f"Respuesta Totales: {r2.status_code}")
         
         if r.status_code == 200 and r2.status_code == 200:
-            # Intentamos parsear ambos JSON
+            # CORRECCIÓN: Intentamos parsear con manejo de errores robusto
             try:
                 json_onpe = r.json()
                 json_totales = r2.json()
-            except Exception:
-                print("Error: El servidor respondió 200 pero no envió un JSON válido.")
+            except Exception as e:
+                print(f"Error: El servidor respondió 200 pero el contenido no es JSON válido. {e}")
                 return
 
             if "data" in json_onpe:
                 # Agregamos la hora de Lima
                 json_onpe["ultima_sincro"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                 
-                # AGREGADO: Insertamos el resumen de totales dentro del mismo objeto
+                # Agregamos el resumen para que el HTML lo lea
                 json_onpe["resumen"] = json_totales.get("data", {})
                 
-                # Guardamos tal cual tu lógica original
+                # Guardamos en el archivo onpe_data.json
                 with open('onpe_data.json', 'w', encoding='utf-8') as f:
                     json.dump(json_onpe, f, indent=2, ensure_ascii=False)
                 
-                print("¡LOGRADO! Datos de candidatos y totales actualizados en onpe_data.json")
+                print("¡LOGRADO! Datos de candidatos y totales actualizados.")
             else:
-                print("El servidor respondió pero el formato de datos cambió.")
+                print("El servidor respondió pero el formato de 'data' no está presente.")
         else:
-            print(f"Bloqueo detectado por la ONPE. Código: {r.status_code}")
+            print(f"Bloqueo detectado o servidor caído. Códigos: {r.status_code} / {r2.status_code}")
 
     except Exception as e:
         print(f"Error crítico en el proceso: {e}")
