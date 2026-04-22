@@ -326,6 +326,18 @@
       "porcentajeVotosValidos": 17.049,
       "porcentajeVotosEmitidos": 14.207
     }
-  ],
+ ],
+  "resumen": {
+    "actasContabilizadas": 94.294,
+    "contabilizadas": 87473,
+    "totalActas": 92766,
+    "participacionCiudadana": 69.745,
+    "actasEnviadasJee": 5.638,
+    "enviadasJee": 5230,
+    "actasPendientesJee": 0.068,
+    "pendientesJee": 63,
+    "totalVotosEmitidos": 19058038,
+    "totalVotosValidos": 15880478
+  },
   "ultima_sincro": "22/04/2026 06:44:10"
 }
