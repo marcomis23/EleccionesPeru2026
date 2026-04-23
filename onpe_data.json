@@ -349,12 +349,12 @@
   },
   "mapa_calor": [
     {
-      "codigoUbigeo": null,
-      "nombre": null,
-      "ganador": "SIN DATOS",
-      "participacion": null,
-      "votosLider": null,
-      "colorPartido": "#1e293b"
+      "codigoUbigeo": "17",
+  "nombre": "LORETO",
+  "ganador": "FUERZA POPULAR",
+  "participacion": 52.4,
+  "votosLider": 125430,
+  "colorPartido": "#f97316"
     },
     {
       "codigoUbigeo": null,
