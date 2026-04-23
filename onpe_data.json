@@ -349,20 +349,23 @@
   },
   "mapa_calor": [
     {
-      "codigoUbigeo": null,
-      "nombre": null,
-      "ganador": "SIN DATOS",
-      "participacion": null,
-      "votosLider": null,
-      "colorPartido": "#1e293b"
-    },
-    {
-      "codigoUbigeo": null,
-      "nombre": null,
-      "ganador": "SIN DATOS",
-      "participacion": null,
-      "votosLider": null,
-      "colorPartido": "#1e293b"
+      "codigoUbigeo": "17",
+      "nombre": "LORETO",
+      "ganador": "FUERZA POPULAR",
+      "participacion": "52.4",
+      "colorPartido": "#f97316",
+      "top5": [
+        {
+          "nombre": "KEIKO FUJIMORI",
+          "dni": "09340000",
+          "porcentaje": "27.8",
+          "partido": "FUERZA POPULAR"
+        },
+        {
+          "nombre": "RAFAEL LOPEZ ALIAGA",
+          "dni": "08250000",
+          "porcentaje": "12.5",
+          "partido": "RENOVACIÓN POPULAR"
     }
   ]
 }
