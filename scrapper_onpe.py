@@ -3,14 +3,14 @@ import json
 import time
 from datetime import datetime
 
-# URLs originales (ID 10) y la base para el Mapa (ID 15)
+# URLs unificadas en ID 10 (Presidencial)
 URL_ONPE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion"
 URL_TOTALES = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/totales?idEleccion=10&tipoFiltro=eleccion"
-# URL Base del mapa (ID 15) para iterar por departamentos
-URL_MAPA_BASE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/mapa-calor?idEleccion=15&tipoFiltro=eleccion"
+# CORRECCIÓN: Ahora el mapa también apunta al ID 10
+URL_MAPA_BASE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/mapa-calor?idEleccion=10&tipoFiltro=eleccion"
 
 def actualizar():
-    # Encabezados de alto nivel para evitar el bloqueo de GitHub Actions
+    # Encabezados originales que ya te funcionan
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -29,7 +29,7 @@ def actualizar():
         
         # Primero "visitamos" la página principal para obtener cookies
         session.get("https://resultadoelectoral.onpe.gob.pe/", headers=headers, timeout=20)
-        time.sleep(3) # Pausa humana original
+        time.sleep(3) # Tu pausa humana original
         
         # 1. Pedimos los datos de Participantes (Candidatos - ID 10)
         r = session.get(URL_ONPE, headers=headers, timeout=30)
@@ -47,20 +47,21 @@ def actualizar():
                 json_onpe["ultima_sincro"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                 json_onpe["resumen"] = json_totales.get("data", {})
 
-                # --- NUEVA LÓGICA: RECORRIDO DE DEPARTAMENTOS (ID 15) ---
-                print("Direccionando votos por departamento (ID 15)...")
+                # --- LÓGICA DE MAPA DIRECCIONADA AL ID 10 ---
+                print("Direccionando votos presidenciales por departamento...")
                 mapa_procesado = []
                 
-                # Colores según el partido ganador
+                # Mapeo de colores por partido para ID 10
                 colores_partidos = {
                     "FUERZA POPULAR": "#f97316",
                     "JUNTOS POR EL PERÚ": "#ef4444",
                     "RENOVACIÓN POPULAR": "#3b82f6",
                     "AVANZA PAÍS": "#fbbf24",
-                    "PARTIDO MORADO": "#a855f7"
+                    "PARTIDO MORADO": "#a855f7",
+                    "PARTIDO DEL BUEN GOBIERNO": "#f43f5e"
                 }
 
-                # Pedimos la data global del mapa para el ID 15
+                # Pedimos la data global del mapa para el ID 10
                 r_mapa = session.get(URL_MAPA_BASE, headers=headers, timeout=30)
                 if r_mapa.status_code == 200:
                     data_mapa_raw = r_mapa.json().get("data", [])
@@ -82,7 +83,7 @@ def actualizar():
                 with open('onpe_data.json', 'w', encoding='utf-8') as f:
                     json.dump(json_onpe, f, indent=2, ensure_ascii=False)
                 
-                print("¡LOGRADO! Dashboard y Mapa Direccionado (ID 15) listos.")
+                print("¡LOGRADO! Dashboard Presidencial unificado y listo.")
             else:
                 print("El servidor respondió pero no hay 'data'.")
         else:
