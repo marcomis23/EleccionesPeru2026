@@ -59,7 +59,7 @@
                 
                 sorted.slice(0, 5).forEach((c, i) => {
                     let ventajaHTML = "";
-                    if (i < 4) {
+                    if (i < sorted.length - 1) {
                         const diff = c.totalVotosValidos - sorted[i+1].totalVotosValidos;
                         ventajaHTML = `<p class="text-[8px] text-emerald-500 font-bold mt-1 uppercase">+${diff.toLocaleString()} VOTOS VENTAJA</p>`;
                     }
@@ -98,15 +98,16 @@
                 .enter().append("path")
                 .attr("d", pathGen)
                 .attr("fill", d => {
-                    // Lógica reforzada para ID 17
-                    const id = String(d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.id || "").trim();
-                    const reg = mapaData.find(r => String(r.codigoUbigeo).trim() == id || parseInt(r.codigoUbigeo) == parseInt(id));
+                    // Búsqueda profunda de ID en el GeoJSON
+                    const id = d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.CODIGO || d.properties.id || d.id;
+                    const reg = mapaData.find(r => parseInt(r.codigoUbigeo) === parseInt(id));
                     return reg ? reg.colorPartido : "#1e293b";
                 })
                 .on("mouseover", function(event, d) {
-                    const id = String(d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.id || "").trim();
-                    const nombreDpto = d.properties.NOMDPTO || d.properties.NOMDEPART || "REGIÓN";
-                    const reg = mapaData.find(r => String(r.codigoUbigeo).trim() == id || parseInt(r.codigoUbigeo) == parseInt(id));
+                    // Búsqueda profunda de ID para Loreto (17)
+                    const id = d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.CODIGO || d.properties.id || d.id;
+                    const nombreDpto = d.properties.NOMDPTO || d.properties.NOMDEPART || d.properties.NOMBDEP || "REGIÓN";
+                    const reg = mapaData.find(r => parseInt(r.codigoUbigeo) === parseInt(id));
                     
                     d3.select(this).attr("stroke", "#fff").attr("stroke-width", 2);
 
@@ -126,9 +127,9 @@
                     }
 
                     tooltip.style("visibility", "visible").html(`
-                        <div style="font-weight: 800; color: #60a5fa; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px;">${nombreDpto}</div>
+                        <div style="font-weight: 800; color: #60a5fa; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px; font-size: 12px;">${nombreDpto}</div>
                         <div style="font-size: 9px; color: #94a3b8; margin-bottom: 12px;">PARTICIPACIÓN: ${reg ? reg.participacion : '0'}%</div>
-                        ${htmlCandidatos || '<div style="font-size:10px; color:#64748b;">No se encontraron datos para ID ' + id + '</div>'}
+                        ${htmlCandidatos || '<div style="font-size:10px; color:#64748b;">No se encontró data para ID: ' + id + '</div>'}
                     `);
                 })
                 .on("mousemove", e => tooltip.style("top", (e.pageY-10)+"px").style("left", (e.pageX+10)+"px"))
