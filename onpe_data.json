@@ -346,5 +346,33 @@
     "totalVotosValidos": 15929620,
     "porcentajeVotosEmitidos": 100,
     "porcentajeVotosValidos": 100
-  }
+  },
+  "mapa_calor": [
+    { "codigoUbigeo": "01", "nombre": "AMAZONAS", "ganador": "JUNTOS POR EL PERÚ", "colorPartido": "#ef4444" },
+    { "codigoUbigeo": "02", "nombre": "ANCASH", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "03", "nombre": "APURIMAC", "ganador": "JUNTOS POR EL PERÚ", "colorPartido": "#ef4444" },
+    { "codigoUbigeo": "04", "nombre": "AREQUIPA", "ganador": "RENOVACIÓN POPULAR", "colorPartido": "#3b82f6" },
+    { "codigoUbigeo": "05", "nombre": "AYACUCHO", "ganador": "JUNTOS POR EL PERÚ", "colorPartido": "#ef4444" },
+    { "codigoUbigeo": "06", "nombre": "CAJAMARCA", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "07", "nombre": "CALLAO", "ganador": "RENOVACIÓN POPULAR", "colorPartido": "#3b82f6" },
+    { "codigoUbigeo": "08", "nombre": "CUSCO", "ganador": "JUNTOS POR EL PERÚ", "colorPartido": "#ef4444" },
+    { "codigoUbigeo": "09", "nombre": "HUANCAVELICA", "ganador": "JUNTOS POR EL PERÚ", "colorPartido": "#ef4444" },
+    { "codigoUbigeo": "10", "nombre": "HUANUCO", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "11", "nombre": "ICA", "ganador": "RENOVACIÓN POPULAR", "colorPartido": "#3b82f6" },
+    { "codigoUbigeo": "12", "nombre": "JUNIN", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "13", "nombre": "LA LIBERTAD", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "14", "nombre": "LAMBAYEQUE", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "15", "nombre": "LIMA", "ganador": "RENOVACIÓN POPULAR", "colorPartido": "#3b82f6" },
+    { "codigoUbigeo": "16", "nombre": "LIMA PROVINCIAS", "ganador": "RENOVACIÓN POPULAR", "colorPartido": "#3b82f6" },
+    { "codigoUbigeo": "17", "nombre": "LORETO", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "18", "nombre": "MADRE DE DIOS", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "19", "nombre": "MOQUEGUA", "ganador": "RENOVACIÓN POPULAR", "colorPartido": "#3b82f6" },
+    { "codigoUbigeo": "20", "nombre": "PASCO", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "21", "nombre": "PIURA", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "22", "nombre": "PUNO", "ganador": "JUNTOS POR EL PERÚ", "colorPartido": "#ef4444" },
+    { "codigoUbigeo": "23", "nombre": "SAN MARTIN", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "24", "nombre": "TACNA", "ganador": "RENOVACIÓN POPULAR", "colorPartido": "#3b82f6" },
+    { "codigoUbigeo": "25", "nombre": "TUMBES", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" },
+    { "codigoUbigeo": "26", "nombre": "UCAYALI", "ganador": "FUERZA POPULAR", "colorPartido": "#f97316" }
+  ]
 }
