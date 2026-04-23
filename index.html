@@ -110,11 +110,10 @@
                 document.getElementById('fecha-onpe').innerText = "ÚLTIMA ACTUALIZACIÓN: " + data.ultima_sincro;
                 document.getElementById('txt-actas').innerText = (data.resumen.actasContabilizadas || "0") + "%";
 
-                // 2. Renderizar TOP 5 (Corregido: Ordenado y Completo)
+                // 2. Renderizar TOP 5 (Ordenado por porcentaje)
                 const cont = document.getElementById('contenedor-candidatos');
                 cont.innerHTML = '';
                 
-                // Ordenamos por porcentaje de mayor a menor y tomamos los 5 primeros
                 const top5 = data.data
                     .sort((a, b) => b.porcentajeVotosValidos - a.porcentajeVotosValidos)
                     .slice(0, 5);
@@ -175,15 +174,15 @@
                     d3.select(this).attr("stroke", "#ffffff").attr("stroke-width", 2);
                     
                     tooltip.style("visibility", "visible").html(`
-                        <div style="font-weight: 800; border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 4px; color: #60a5fa; text-transform: uppercase;">
+                        <div style="font-weight: 800; color: #60a5fa; text-transform: uppercase; margin-bottom: 5px; border-bottom: 1px solid #334155;">
                             ${d.properties.NOMDPTO}
                         </div>
-                        <div class="flex justify-between text-[10px] mb-1">
+                        <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 8px;">
                             <span>PARTICIPACIÓN:</span>
-                            <span class="font-bold text-white">${reg ? reg.participacion : '0'}%</span>
+                            <span style="font-weight: bold;">${reg ? reg.participacion : '0'}%</span>
                         </div>
-                        <div class="mt-2">
-                            <span style="color: #fbbf24; font-size: 9px; font-weight: 800; text-transform: uppercase;">Líder en Región:</span>
+                        <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px;">
+                            <span style="color: #fbbf24; font-size: 9px; font-weight: 800;">LÍDER EN REGIÓN:</span>
                             <div style="font-size: 11px; font-weight: bold; color: ${reg ? reg.colorPartido : '#fff'}">
                                 ${reg ? reg.ganador : 'SIN DATOS'}
                             </div>
