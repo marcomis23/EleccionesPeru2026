@@ -3,14 +3,15 @@ import json
 import time
 from datetime import datetime
 
-# URLs unificadas en ID 10 (Presidencial)
-URL_ONPE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion"
+# URLs base (Todas apuntando al ID 10 para Presidenciales)
+URL_NACIONAL = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion"
 URL_TOTALES = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/totales?idEleccion=10&tipoFiltro=eleccion"
-# CORRECCIÓN: Ahora el mapa también apunta al ID 10
-URL_MAPA_BASE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/mapa-calor?idEleccion=10&tipoFiltro=eleccion"
+URL_MAPA_CALOR = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/mapa-calor?idEleccion=10&tipoFiltro=eleccion"
+# URL para detalle por departamento
+URL_DETALLE_REGIONAL = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion&idAmbitoGeografico="
 
 def actualizar():
-    # Encabezados originales que ya te funcionan
+    # Mantenemos tus encabezados de alto nivel originales
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -24,73 +25,79 @@ def actualizar():
     }
 
     try:
-        print("Iniciando actualización de candidatos con camuflaje...")
+        print("Iniciando actualización completa (Nacional + 26 Regiones)...")
         session = requests.Session()
         
-        # Primero "visitamos" la página principal para obtener cookies
+        # Visitamos la principal para cookies (tu lógica original)
         session.get("https://resultadoelectoral.onpe.gob.pe/", headers=headers, timeout=20)
-        time.sleep(3) # Tu pausa humana original
+        time.sleep(3) 
         
-        # 1. Pedimos los datos de Participantes (Candidatos - ID 10)
-        r = session.get(URL_ONPE, headers=headers, timeout=30)
+        # 1. Datos Nacionales e Información General
+        r_nac = session.get(URL_NACIONAL, headers=headers, timeout=30)
+        r_res = session.get(URL_TOTALES, headers=headers, timeout=30)
+        r_mapa = session.get(URL_MAPA_CALOR, headers=headers, timeout=30)
         
-        # 2. Pedimos los datos de Totales (Resumen - ID 10)
-        r2 = session.get(URL_TOTALES, headers=headers, timeout=30)
-        
-        print(f"Respuesta del servidor (ID 10): {r.status_code}")
-        
-        if r.status_code == 200 and r2.status_code == 200:
-            json_onpe = r.json()
-            json_totales = r2.json()
+        if r_nac.status_code == 200:
+            json_final = r_nac.json()
+            json_final["resumen"] = r_res.json().get("data", {})
+            json_final["ultima_sincro"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            
+            # 2. Bucle de Detalle Regional (Para el Tooltip estilo Renzo)
+            mapa_procesado = []
+            data_mapa_raw = r_mapa.json().get("data", [])
+            
+            colores_partidos = {
+                "FUERZA POPULAR": "#f97316",
+                "JUNTOS POR EL PERÚ": "#ef4444",
+                "RENOVACIÓN POPULAR": "#3b82f6",
+                "AVANZA PAÍS": "#fbbf24",
+                "PARTIDO DEL BUEN GOBIERNO": "#f43f5e"
+            }
 
-            if "data" in json_onpe:
-                json_onpe["ultima_sincro"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                json_onpe["resumen"] = json_totales.get("data", {})
-
-                # --- LÓGICA DE MAPA DIRECCIONADA AL ID 10 ---
-                print("Direccionando votos presidenciales por departamento...")
-                mapa_procesado = []
+            for reg in data_mapa_raw:
+                ubigeo = reg.get("codigoUbigeo")
+                nombre_dep = reg.get("nombreUbigeo")
+                print(f"-> Extrayendo Top 5 de {nombre_dep} (Ubigeo {ubigeo})...")
                 
-                # Mapeo de colores por partido para ID 10
-                colores_partidos = {
-                    "FUERZA POPULAR": "#f97316",
-                    "JUNTOS POR EL PERÚ": "#ef4444",
-                    "RENOVACIÓN POPULAR": "#3b82f6",
-                    "AVANZA PAÍS": "#fbbf24",
-                    "PARTIDO MORADO": "#a855f7",
-                    "PARTIDO DEL BUEN GOBIERNO": "#f43f5e"
-                }
-
-                # Pedimos la data global del mapa para el ID 10
-                r_mapa = session.get(URL_MAPA_BASE, headers=headers, timeout=30)
-                if r_mapa.status_code == 200:
-                    data_mapa_raw = r_mapa.json().get("data", [])
-                    
-                    for reg in data_mapa_raw:
-                        ganador = reg.get("agrupacionLider", "SIN DATOS")
-                        mapa_procesado.append({
-                            "codigoUbigeo": reg.get("codigoUbigeo"),
-                            "nombre": reg.get("nombreUbigeo"),
-                            "ganador": ganador,
-                            "participacion": reg.get("participacionCiudadana"),
-                            "votosLider": reg.get("votosAgrupacionLider"),
-                            "colorPartido": colores_partidos.get(ganador, "#1e293b")
+                # Pedimos el detalle de candidatos de este departamento específico
+                r_reg = session.get(URL_DETALLE_REGIONAL + ubigeo, headers=headers, timeout=20)
+                
+                top5_regional = []
+                if r_reg.status_code == 200:
+                    data_reg_candidatos = r_reg.json().get("data", [])
+                    # Solo tomamos los primeros 5 de esta región
+                    for cand in data_reg_candidatos[:5]:
+                        top5_regional.append({
+                            "nombre": cand.get("nombreCandidato"),
+                            "dni": cand.get("dniCandidato"),
+                            "partido": cand.get("nombreAgrupacionPolitica"),
+                            "porcentaje": cand.get("porcentajeVotosValidos")
                         })
                 
-                json_onpe["mapa_calor"] = mapa_procesado
+                ganador_nombre = reg.get("agrupacionLider", "SIN DATOS")
+                mapa_procesado.append({
+                    "codigoUbigeo": ubigeo,
+                    "nombre": nombre_dep,
+                    "ganador": ganador_nombre,
+                    "participacion": reg.get("participacionCiudadana"),
+                    "colorPartido": colores_partidos.get(ganador_nombre, "#1e293b"),
+                    "top5": top5_regional # <--- Aquí viajan los datos para el Tooltip
+                })
                 
-                # Guardamos TODO en onpe_data.json
-                with open('onpe_data.json', 'w', encoding='utf-8') as f:
-                    json.dump(json_onpe, f, indent=2, ensure_ascii=False)
-                
-                print("¡LOGRADO! Dashboard Presidencial unificado y listo.")
-            else:
-                print("El servidor respondió pero no hay 'data'.")
+                time.sleep(1.5) # Pausa para evitar baneo de la IP
+
+            json_final["mapa_calor"] = mapa_procesado
+
+            # Guardado final (tu estructura de guardado ok)
+            with open('onpe_data.json', 'w', encoding='utf-8') as f:
+                json.dump(json_final, f, indent=2, ensure_ascii=False)
+            
+            print("¡LOGRADO! onpe_data.json actualizado con detalle regional completo.")
         else:
-            print(f"Error de conexión: {r.status_code} / {r2.status_code}")
+            print(f"Error en servidor: {r_nac.status_code}")
 
     except Exception as e:
-        print(f"Error crítico: {e}")
+        print(f"Error crítico en el scraper: {e}")
 
 if __name__ == "__main__":
     actualizar()
