@@ -9,47 +9,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #070b14; 
-            background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent);
-            color: #f8fafc;
-            min-height: 100vh;
-        }
-
-        .glass-card { 
-            background: rgba(17, 25, 40, 0.75);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-        }
-
-        .tooltip-mapa {
-            position: absolute;
-            visibility: hidden;
-            background: rgba(7, 11, 20, 0.98);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(59, 130, 246, 0.4);
-            padding: 15px;
-            border-radius: 20px;
-            color: white;
-            z-index: 1000;
-            min-width: 240px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            pointer-events: none;
-        }
-
-        .pulse {
-            display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-            background: #10b981; animation: pulse-anim 2s infinite;
-        }
-
-        @keyframes pulse-anim {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #070b14; color: #f8fafc; min-height: 100vh; }
+        .glass-card { background: rgba(17, 25, 40, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
+        .tooltip-mapa { position: absolute; visibility: hidden; background: rgba(7, 11, 20, 0.98); backdrop-filter: blur(12px); border: 1px solid rgba(59, 130, 246, 0.4); padding: 15px; border-radius: 20px; color: white; z-index: 1000; min-width: 250px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); pointer-events: none; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -59,7 +21,6 @@
                 <h1 class="text-xs font-bold tracking-[0.3em] text-blue-500 uppercase mb-1">Elecciones Generales</h1>
                 <div class="flex items-center gap-2">
                     <span class="text-2xl font-extrabold italic uppercase">ONPE Real-Time</span>
-                    <span class="pulse"></span>
                 </div>
                 <p id="fecha-onpe" class="text-[10px] text-slate-500 font-medium mt-1 uppercase">SINCRO: --/--/--</p>
             </div>
@@ -93,48 +54,50 @@
             try {
                 const response = await fetch('onpe_data.json?v=' + Date.now());
                 const data = await response.json();
-
                 document.getElementById('fecha-onpe').innerText = "ACTUALIZADO: " + data.ultima_sincro;
                 document.getElementById('txt-actas').innerText = (data.resumen.actasContabilizadas || "0") + "%";
 
                 const cont = document.getElementById('contenedor-candidatos');
                 cont.innerHTML = '';
-                
-                // ORDENAR NACIONAL: Del mayor al menor (Top 5)
-                const top5 = [...data.data].sort((a,b) => b.porcentajeVotosValidos - a.porcentajeVotosValidos).slice(0, 5);
+                const sortedData = [...data.data].sort((a,b) => b.porcentajeVotosValidos - a.porcentajeVotosValidos);
+                const top5 = sortedData.slice(0, 5);
 
-                top5.forEach(c => {
+                top5.forEach((c, index) => {
+                    // CÁLCULO DE DIFERENCIA (vs el que le sigue)
+                    let diferenciaHTML = "";
+                    if (index < top5.length - 1) {
+                        const diff = c.totalVotosValidos - sortedData[index + 1].totalVotosValidos;
+                        diferenciaHTML = `<p class="text-[8px] text-emerald-500 font-bold mt-1">+${diff.toLocaleString()} VOTOS VENTAJA</p>`;
+                    }
+
                     cont.innerHTML += `
                         <div class="glass-card p-4 flex items-center gap-4 border-l-4 border-blue-500">
                             <img src="https://resultadoelectoral.onpe.gob.pe/assets/img-reales/candidatos/${c.dniCandidato}.jpg" class="w-12 h-12 rounded-lg object-cover" onerror="this.src='https://via.placeholder.com/50'">
                             <div class="flex-1 min-w-0">
                                 <h3 class="text-xs font-bold text-white truncate uppercase">${c.nombreCandidato}</h3>
-                                <p class="text-[9px] text-slate-500 truncate uppercase mb-1">${c.nombreAgrupacionPolitica}</p>
-                                <div class="w-full bg-slate-800 h-1.5 rounded-full"><div class="bg-blue-500 h-full" style="width: ${c.porcentajeVotosValidos}%"></div></div>
+                                <div class="w-full bg-slate-800 h-1.5 rounded-full mt-2"><div class="bg-blue-500 h-full" style="width: ${c.porcentajeVotosValidos}%"></div></div>
+                                ${diferenciaHTML}
                             </div>
                             <div class="text-right">
-                                <p class="text-sm font-black text-white leading-none">${Number(c.porcentajeVotosValidos).toFixed(3)}%</p>
-                                <p class="text-[8px] text-slate-500 font-bold mt-1 uppercase">${Number(c.totalVotosValidos).toLocaleString()} VOTOS</p>
+                                <p class="text-sm font-black text-white">${Number(c.porcentajeVotosValidos).toFixed(3)}%</p>
+                                <p class="text-[8px] text-slate-500 font-bold uppercase">${Number(c.totalVotosValidos).toLocaleString()} VOTOS</p>
                             </div>
                         </div>`;
                 });
-
                 renderizarMapa(data.mapa_calor);
-            } catch (e) { console.error("Error cargando dashboard:", e); }
+            } catch (e) { console.error(e); }
         }
 
         async function renderizarMapa(mapaData) {
             const container = d3.select("#mapa-onpe");
             container.selectAll("*").remove();
             const width = document.getElementById('mapa-onpe').clientWidth;
-            const height = 580;
-            const svg = container.append("svg").attr("width", width).attr("height", height);
-            
+            const svg = container.append("svg").attr("width", width).attr("height", 580);
             let tooltip = d3.select("#tooltip-onpe");
             if (tooltip.empty()) tooltip = d3.select("body").append("div").attr("id", "tooltip-onpe").attr("class", "tooltip-mapa");
 
             const geoData = await d3.json("peru_departamentos.json");
-            const projection = d3.geoMercator().center([-75, -9.5]).scale(2200).translate([width/2, height/2]);
+            const projection = d3.geoMercator().center([-75, -9.5]).scale(2200).translate([width/2, 290]);
             const pathGen = d3.geoPath().projection(projection);
 
             svg.selectAll("path")
@@ -143,14 +106,13 @@
                 .attr("d", pathGen)
                 .attr("fill", d => {
                     const idDraw = d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.id;
-                    // SINCRO SEGURA: parseInt para ignorar ceros a la izquierda
                     const reg = mapaData.find(r => parseInt(r.codigoUbigeo) === parseInt(idDraw));
                     return reg ? reg.colorPartido : "#1e293b";
                 })
-                .attr("stroke", "rgba(255,255,255,0.1)")
                 .on("mouseover", function(event, d) {
                     const idDraw = d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.id;
-                    const nombreDpto = d.properties.NOMDPTO || d.properties.NOMDEPART || "REGIÓN";
+                    // RECUPERANDO NOMBRES REALES DEL GEOJSON
+                    const nombreDpto = d.properties.NOMDPTO || d.properties.NOMDEPART || d.properties.NOMBDEP || "REGIÓN";
                     const reg = mapaData.find(r => parseInt(r.codigoUbigeo) === parseInt(idDraw));
                     
                     d3.select(this).attr("stroke", "#fff").attr("stroke-width", 2);
@@ -159,41 +121,26 @@
                     if (reg && reg.top5) {
                         reg.top5.forEach(c => {
                             htmlCandidatos += `
-                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                    <img src="https://resultadoelectoral.onpe.gob.pe/assets/img-reales/candidatos/${c.dni}.jpg" 
-                                         style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #334155;" 
-                                         onerror="this.src='https://via.placeholder.com/28'">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                    <img src="https://resultadoelectoral.onpe.gob.pe/assets/img-reales/candidatos/${c.dni}.jpg" style="width: 25px; height: 25px; border-radius: 5px;" onerror="this.src='https://via.placeholder.com/25'">
                                     <div style="flex: 1;">
-                                        <div style="font-size: 9px; font-weight: 800; color: white; line-height: 1.1;">${c.nombre}</div>
-                                        <div style="width: 100%; background: #1e293b; height: 3px; border-radius: 2px; margin-top: 4px;">
-                                            <div style="width: ${c.porcentaje}%; background: ${reg.colorPartido}; height: 100%;"></div>
-                                        </div>
+                                        <div style="font-size: 9px; font-weight: 800; color: white;">${c.nombre}</div>
+                                        <div style="width: 100%; background: #1e293b; height: 3px; margin-top: 3px;"><div style="width: ${c.porcentaje}%; background: ${reg.colorPartido}; height: 100%;"></div></div>
                                     </div>
-                                    <div style="font-size: 10px; font-weight: 900; color: #60a5fa;">${Number(c.porcentaje).toFixed(1)}%</div>
+                                    <div style="font-size: 10px; font-weight: 900; color: #60a5fa;">${c.porcentaje}%</div>
                                 </div>`;
                         });
                     }
 
                     tooltip.style("visibility", "visible").html(`
-                        <div style="font-weight: 800; color: #60a5fa; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 6px; font-size: 12px;">
-                            ${nombreDpto}
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 12px; color: #94a3b8;">
-                            <span>PARTICIPACIÓN:</span>
-                            <span style="font-weight: bold; color: white;">${reg ? reg.participacion : '0'}%</span>
-                        </div>
-                        <div style="display: flex; flex-direction: column;">
-                            ${htmlCandidatos || '<div style="font-size:10px; color:#64748b;">Cargando datos regionales...</div>'}
-                        </div>
+                        <div style="font-weight: 800; color: #60a5fa; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 5px;">${nombreDpto}</div>
+                        <div style="font-size: 9px; margin-bottom: 10px; color: #94a3b8;">PARTICIPACIÓN: ${reg ? reg.participacion : '0'}%</div>
+                        ${htmlCandidatos || '<div style="font-size:10px;">Cargando...</div>'}
                     `);
                 })
                 .on("mousemove", e => tooltip.style("top", (e.pageY-10)+"px").style("left", (e.pageX+10)+"px"))
-                .on("mouseleave", function() {
-                    d3.select(this).attr("stroke", "rgba(255,255,255,0.1)").attr("stroke-width", 1);
-                    tooltip.style("visibility", "hidden");
-                });
+                .on("mouseleave", function() { d3.select(this).attr("stroke", "none"); tooltip.style("visibility", "hidden"); });
         }
-
         cargarDashboard();
         setInterval(cargarDashboard, 30000);
     </script>
