@@ -3,10 +3,11 @@ import json
 import time
 from datetime import datetime
 
-# URLs originales (ID 10) y nueva para el Mapa (ID 15)
+# URLs originales (ID 10) y la base para el Mapa (ID 15)
 URL_ONPE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/participantes?idEleccion=10&tipoFiltro=eleccion"
 URL_TOTALES = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/totales?idEleccion=10&tipoFiltro=eleccion"
-URL_MAPA_CALOR = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/mapa-calor?idEleccion=15&tipoFiltro=eleccion"
+# URL Base del mapa (ID 15) para iterar por departamentos
+URL_MAPA_BASE = "https://resultadoelectoral.onpe.gob.pe/presentacion-backend/resumen-general/mapa-calor?idEleccion=15&tipoFiltro=eleccion"
 
 def actualizar():
     # Encabezados de alto nivel para evitar el bloqueo de GitHub Actions
@@ -28,51 +29,67 @@ def actualizar():
         
         # Primero "visitamos" la página principal para obtener cookies
         session.get("https://resultadoelectoral.onpe.gob.pe/", headers=headers, timeout=20)
-        time.sleep(3) # Pausa humana
+        time.sleep(3) # Pausa humana original
         
-        # 1. Pedimos los datos de Participantes (Candidatos)
+        # 1. Pedimos los datos de Participantes (Candidatos - ID 10)
         r = session.get(URL_ONPE, headers=headers, timeout=30)
         
-        # 2. Pedimos los datos de Totales (Actas/Participación)
+        # 2. Pedimos los datos de Totales (Resumen - ID 10)
         r2 = session.get(URL_TOTALES, headers=headers, timeout=30)
-
-        # 3. Pedimos los datos del Mapa de Calor (ID 15)
-        r3 = session.get(URL_MAPA_CALOR, headers=headers, timeout=30)
         
-        print(f"Respuesta del servidor: {r.status_code}")
+        print(f"Respuesta del servidor (ID 10): {r.status_code}")
         
         if r.status_code == 200 and r2.status_code == 200:
-            # Intentamos parsear los JSON
-            try:
-                json_onpe = r.json()
-                json_totales = r2.json()
-                json_mapa = r3.json() if r3.status_code == 200 else {"data": []}
-            except Exception:
-                print("Error: El servidor respondió 200 pero no envió un JSON válido.")
-                return
+            json_onpe = r.json()
+            json_totales = r2.json()
 
             if "data" in json_onpe:
-                # Agregamos la hora de Lima (Mantenemos tu lógica original)
                 json_onpe["ultima_sincro"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                
-                # INTEGRACIÓN: Metemos los totales del Link 2 dentro de 'resumen'
                 json_onpe["resumen"] = json_totales.get("data", {})
 
-                # ADICIÓN: Metemos los datos del mapa (ID 15) en una nueva llave
-                json_onpe["mapa_calor"] = json_mapa.get("data", [])
+                # --- NUEVA LÓGICA: RECORRIDO DE DEPARTAMENTOS (ID 15) ---
+                print("Direccionando votos por departamento (ID 15)...")
+                mapa_procesado = []
                 
-                # Guardamos TODO en un solo archivo onpe_data.json
+                # Colores según el partido ganador
+                colores_partidos = {
+                    "FUERZA POPULAR": "#f97316",
+                    "JUNTOS POR EL PERÚ": "#ef4444",
+                    "RENOVACIÓN POPULAR": "#3b82f6",
+                    "AVANZA PAÍS": "#fbbf24",
+                    "PARTIDO MORADO": "#a855f7"
+                }
+
+                # Pedimos la data global del mapa para el ID 15
+                r_mapa = session.get(URL_MAPA_BASE, headers=headers, timeout=30)
+                if r_mapa.status_code == 200:
+                    data_mapa_raw = r_mapa.json().get("data", [])
+                    
+                    for reg in data_mapa_raw:
+                        ganador = reg.get("agrupacionLider", "SIN DATOS")
+                        mapa_procesado.append({
+                            "codigoUbigeo": reg.get("codigoUbigeo"),
+                            "nombre": reg.get("nombreUbigeo"),
+                            "ganador": ganador,
+                            "participacion": reg.get("participacionCiudadana"),
+                            "votosLider": reg.get("votosAgrupacionLider"),
+                            "colorPartido": colores_partidos.get(ganador, "#1e293b")
+                        })
+                
+                json_onpe["mapa_calor"] = mapa_procesado
+                
+                # Guardamos TODO en onpe_data.json
                 with open('onpe_data.json', 'w', encoding='utf-8') as f:
                     json.dump(json_onpe, f, indent=2, ensure_ascii=False)
                 
-                print("¡LOGRADO! Datos de candidatos, resumen y mapa unificados en onpe_data.json")
+                print("¡LOGRADO! Dashboard y Mapa Direccionado (ID 15) listos.")
             else:
-                print("El servidor respondió pero el formato de datos 'data' no está presente.")
+                print("El servidor respondió pero no hay 'data'.")
         else:
-            print(f"Bloqueo detectado o servidor caído. Códigos: {r.status_code} / {r2.status_code}")
+            print(f"Error de conexión: {r.status_code} / {r2.status_code}")
 
     except Exception as e:
-        print(f"Error crítico en el proceso: {e}")
+        print(f"Error crítico: {e}")
 
 if __name__ == "__main__":
     actualizar()
