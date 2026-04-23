@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ONPE: Dashboard Electoral Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
@@ -36,7 +37,23 @@
             transition: width 1.5s cubic-bezier(0.65, 0, 0.35, 1);
         }
 
-        /* Efecto de pulso para el estado online */
+        /* Tooltip del Mapa */
+        .tooltip-mapa {
+            position: absolute;
+            visibility: hidden;
+            background: rgba(7, 11, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 12px;
+            border-radius: 16px;
+            color: white;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            min-width: 160px;
+        }
+
         .pulse {
             display: inline-block;
             width: 8px;
@@ -86,10 +103,16 @@
                 <i class="fa-solid fa-ranking-star text-blue-500"></i>
                 Conteo de Votos (Top 5)
             </h2>
-            
-            <div id="contenedor-candidatos" class="space-y-4">
-                </div>
+            <div id="contenedor-candidatos" class="space-y-4"></div>
         </main>
+
+        <section class="glass-card p-6 mb-8">
+            <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-map-location-dot text-blue-500"></i>
+                Mapa de Participación por Región
+            </h2>
+            <div id="mapa-onpe" class="w-full h-[450px] bg-slate-900/30 rounded-xl overflow-hidden relative"></div>
+        </section>
 
         <div class="grid grid-cols-2 gap-4">
             <div class="glass-card p-4 text-center">
@@ -139,7 +162,7 @@
                         cont.innerHTML += `
                             <div class="glass-card p-4 flex gap-4 items-center">
                                 <div class="relative flex-shrink-0">
-                                    <div class="w-16 h-16 rounded-2xl overflow-hidden border border-slate-700 bg-slate-800 shadow-inner">
+                                    <div class="w-16 h-16 rounded-2xl overflow-hidden border border-slate-700 bg-slate-800">
                                         <img src="https://resultadoelectoral.onpe.gob.pe/assets/img-reales/candidatos/${c.dniCandidato}.jpg" 
                                              onerror="this.src='https://via.placeholder.com/150/1e293b/ffffff?text=?'"
                                              class="w-full h-full object-cover">
@@ -147,32 +170,70 @@
                                     <img src="https://resultadoelectoral.onpe.gob.pe/assets/img-reales/partidos/${codPartido}.jpg"
                                          class="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg border-2 border-[#111928] bg-white p-0.5 shadow-lg">
                                 </div>
-
                                 <div class="flex-1 min-w-0">
                                     <div class="flex justify-between items-start mb-2">
                                         <div class="truncate">
-                                            <h3 class="text-sm font-extrabold text-white truncate leading-tight uppercase tracking-tight">${c.nombreCandidato}</h3>
-                                            <p class="text-[9px] font-bold text-slate-500 truncate uppercase mt-0.5">${c.nombreAgrupacionPolitica}</p>
+                                            <h3 class="text-sm font-extrabold text-white truncate uppercase">${c.nombreCandidato}</h3>
+                                            <p class="text-[9px] font-bold text-slate-500 truncate uppercase">${c.nombreAgrupacionPolitica}</p>
                                         </div>
-                                        <div class="text-right flex-shrink-0 ml-2">
-                                            <p class="text-lg font-black text-white leading-none">${Number(c.porcentajeVotosValidos).toFixed(3)}%</p>
-                                            <p class="text-[8px] font-bold text-slate-400 mt-1 uppercase">${Number(c.totalVotosValidos).toLocaleString()} v.</p>
+                                        <div class="text-right ml-2">
+                                            <p class="text-lg font-black text-white">${Number(c.porcentajeVotosValidos).toFixed(3)}%</p>
                                         </div>
                                     </div>
-                                    
                                     <div class="flex items-center gap-3">
-                                        <div class="flex-1 bg-slate-900/50 rounded-full h-2 border border-white/5 overflow-hidden">
+                                        <div class="flex-1 bg-slate-900/50 rounded-full h-2 overflow-hidden">
                                             <div class="bar-anim h-full rounded-full" 
-                                                 style="width: ${c.porcentajeVotosValidos}%; background: linear-gradient(90deg, ${colores[i]}, #60a5fa); box-shadow: 0 0 10px ${colores[i]}44">
+                                                 style="width: ${c.porcentajeVotosValidos}%; background: linear-gradient(90deg, ${colores[i]}, #60a5fa);">
                                             </div>
                                         </div>
-                                        <div class="text-[9px] font-bold uppercase tracking-tighter">
-                                            ${diffText}
-                                        </div>
+                                        <div class="text-[9px] font-bold uppercase">${diffText}</div>
                                     </div>
                                 </div>
                             </div>`;
                     });
+
+                    // Lógica del Mapa de Calor D3
+                    const mapContainer = document.getElementById('mapa-onpe');
+                    mapContainer.innerHTML = '';
+                    const width = mapContainer.clientWidth;
+                    const height = 450;
+                    const svg = d3.select("#mapa-onpe").append("svg").attr("width", width).attr("height", height);
+                    
+                    const projection = d3.geoMercator().center([-75, -9.5]).scale(1800).translate([width/2, height/2]);
+                    const pathGen = d3.geoPath().projection(projection);
+
+                    let tooltip = d3.select("#tooltip-onpe");
+                    if (tooltip.empty()) tooltip = d3.select("body").append("div").attr("id", "tooltip-onpe").attr("class", "tooltip-mapa");
+
+                    const [geoData, mapResults] = await Promise.all([
+                        fetch('./peru_departamentos.json').then(r => r.json()),
+                        Promise.resolve(json.mapa_calor || [])
+                    ]);
+
+                    svg.selectAll("path")
+                        .data(geoData.features)
+                        .enter().append("path")
+                        .attr("d", pathGen)
+                        .attr("fill", d => {
+                            const reg = mapResults.find(r => r.codigoUbigeo === d.properties.IDDPTO);
+                            return reg ? d3.interpolateBlues(reg.participacionCiudadana / 100) : "#111928";
+                        })
+                        .attr("stroke", "rgba(255,255,255,0.05)")
+                        .on("mouseover", function(event, d) {
+                            const reg = mapResults.find(r => r.codigoUbigeo === d.properties.IDDPTO);
+                            d3.select(this).attr("stroke", "#3b82f6").attr("stroke-width", 2);
+                            if(reg) {
+                                tooltip.style("visibility", "visible").html(`
+                                    <div class="tooltip-header">${d.properties.NOMDPTO}</div>
+                                    <div class="flex justify-between"><span>Participación:</span><span class="text-emerald-400 font-bold">${reg.participacionCiudadana}%</span></div>
+                                `);
+                            }
+                        })
+                        .on("mousemove", e => tooltip.style("top", (e.pageY-10)+"px").style("left", (e.pageX+10)+"px"))
+                        .on("mouseleave", function() {
+                            d3.select(this).attr("stroke", "rgba(255,255,255,0.05)").attr("stroke-width", 1);
+                            tooltip.style("visibility", "hidden");
+                        });
 
                     document.getElementById('estado-robot').innerText = "CONECTADO";
                     document.getElementById('hora-consulta').innerText = new Date().toLocaleTimeString('es-PE', { hour12: false });
