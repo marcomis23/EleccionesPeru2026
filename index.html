@@ -1,203 +1,108 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ONPE: Dashboard Electoral Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+<script>
+    async function cargarDashboard() {
+        try {
+            const response = await fetch('onpe_data.json?v=' + Date.now());
+            const data = await response.json();
+
+            // 1. Cabecera
+            document.getElementById('fecha-onpe').innerText = "ÚLTIMA ACTUALIZACIÓN: " + data.ultima_sincro;
+            document.getElementById('txt-actas').innerText = (data.resumen.actasContabilizadas || "0") + "%";
+
+            // 2. TOP 5 CANDIDATOS (Fijo y Ordenado)
+            const cont = document.getElementById('contenedor-candidatos');
+            cont.innerHTML = '';
+            const top5 = data.data
+                .sort((a, b) => b.porcentajeVotosValidos - a.porcentajeVotosValidos)
+                .slice(0, 5);
+
+            top5.forEach(c => {
+                cont.innerHTML += `
+                    <div class="glass-card p-4 flex items-center gap-4 border-l-4 border-blue-500">
+                        <img src="https://resultadoelectoral.onpe.gob.pe/assets/img-reales/candidatos/${c.dniCandidato}.jpg" 
+                             class="w-14 h-14 rounded-xl border border-slate-700 object-cover" onerror="this.src='https://via.placeholder.com/100'">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-xs font-extrabold text-white truncate uppercase">${c.nombreCandidato}</h3>
+                            <p class="text-[9px] text-slate-500 truncate uppercase mb-1">${c.nombreAgrupacionPolitica}</p>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-blue-500 h-full" style="width: ${c.porcentajeVotosValidos}%"></div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-black text-white leading-none">${Number(c.porcentajeVotosValidos).toFixed(3)}%</p>
+                        </div>
+                    </div>`;
+            });
+
+            // 3. Renderizar Mapa
+            renderizarMapa(data.mapa_calor);
+
+        } catch (error) { console.error("Error:", error); }
+    }
+
+    async function renderizarMapa(mapaData) {
+        const container = d3.select("#mapa-onpe");
+        container.selectAll("*").remove();
+
+        const width = document.getElementById('mapa-onpe').clientWidth;
+        const height = 550;
+        const svg = container.append("svg").attr("width", width).attr("height", height);
         
-        :root {
-            --bg-dark: #070b14;
-            --card-bg: rgba(17, 25, 40, 0.75);
+        let tooltip = d3.select("#tooltip-onpe");
+        if (tooltip.empty()) {
+            tooltip = d3.select("body").append("div").attr("id", "tooltip-onpe").attr("class", "tooltip-mapa");
         }
 
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: var(--bg-dark); 
-            background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent),
-                              radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.05), transparent);
-            color: #f8fafc;
-            min-height: 100vh;
-        }
+        const geoData = await d3.json("peru_departamentos.json");
+        const projection = d3.geoMercator().center([-75, -9.5]).scale(2100).translate([width/2, height/2]);
+        const pathGen = d3.geoPath().projection(projection);
 
-        .glass-card { 
-            background: var(--card-bg);
-            backdrop-filter: blur(12px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-
-        .tooltip-mapa {
-            position: absolute;
-            visibility: hidden;
-            background: rgba(7, 11, 20, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            padding: 12px;
-            border-radius: 16px;
-            color: white;
-            font-size: 11px;
-            pointer-events: none;
-            z-index: 1000;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            min-width: 180px;
-        }
-
-        .pulse {
-            display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-            background: #10b981; animation: pulse-anim 2s infinite;
-        }
-
-        @keyframes pulse-anim {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-    </style>
-</head>
-<body class="p-4 md:p-8">
-    <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-start mb-8">
-            <div>
-                <h1 class="text-xs font-bold tracking-[0.3em] text-blue-500 uppercase mb-1">Elecciones Generales</h1>
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl font-extrabold tracking-tighter italic uppercase">ONPE Real-Time</span>
-                    <span class="pulse"></span>
-                </div>
-                <p id="fecha-onpe" class="text-[10px] text-slate-500 font-medium mt-1 uppercase">SINCRO: --/--/--</p>
-            </div>
-            <div class="text-right">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Actas Procesadas</p>
-                <p id="txt-actas" class="text-xl font-black text-white leading-none">--.---%</p>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <section class="space-y-4">
-                <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] px-2">
-                    <i class="fa-solid fa-ranking-star text-blue-500 mr-2"></i>Conteo Nacional (Top 5)
-                </h2>
-                <div id="contenedor-candidatos" class="space-y-3"></div>
-            </section>
-
-            <section>
-                <div class="glass-card p-6">
-                    <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">
-                        <i class="fa-solid fa-map-location-dot text-blue-500 mr-2"></i>Mapa de Resultados Regionales
-                    </h2>
-                    <div id="mapa-onpe" class="w-full h-[550px] bg-slate-900/30 rounded-2xl relative overflow-hidden"></div>
-                </div>
-            </section>
-        </div>
-
-        <footer class="mt-12 text-center border-t border-slate-800 pt-6">
-            <p class="text-slate-600 font-bold text-[9px] uppercase tracking-[0.4em]">Dashboard Engine v2.0 • Marco Carrasco</p>
-        </footer>
-    </div>
-
-    <script>
-        async function cargarDashboard() {
-            try {
-                const response = await fetch('onpe_data.json?v=' + Date.now());
-                const data = await response.json();
-
-                // 1. Resumen y Fecha
-                document.getElementById('fecha-onpe').innerText = "ÚLTIMA ACTUALIZACIÓN: " + data.ultima_sincro;
-                document.getElementById('txt-actas').innerText = (data.resumen.actasContabilizadas || "0") + "%";
-
-                // 2. Renderizar TOP 5 (Ordenado por porcentaje)
-                const cont = document.getElementById('contenedor-candidatos');
-                cont.innerHTML = '';
+        svg.selectAll("path")
+            .data(geoData.features)
+            .enter().append("path")
+            .attr("d", pathGen)
+            .attr("fill", d => {
+                // CORRECCIÓN CLAVE: Buscamos el código en cualquier propiedad posible (IDDPTO, CD_DPTO, id)
+                const prop = d.properties;
+                const codigoMapa = prop.IDDPTO || prop.CD_DPTO || prop.id || prop.FIRST_IDDP;
                 
-                const top5 = data.data
-                    .sort((a, b) => b.porcentajeVotosValidos - a.porcentajeVotosValidos)
-                    .slice(0, 5);
+                // Forzamos que ambos sean String para que "17" sea igual a "17"
+                const reg = mapaData.find(r => String(r.codigoUbigeo).padStart(2, '0') === String(codigoMapa).padStart(2, '0'));
+                return reg ? reg.colorPartido : "#111928";
+            })
+            .attr("stroke", "rgba(255,255,255,0.1)")
+            .on("mouseover", function(event, d) {
+                const prop = d.properties;
+                const codigoMapa = prop.IDDPTO || prop.CD_DPTO || prop.id || prop.FIRST_IDDP;
+                const reg = mapaData.find(r => String(r.codigoUbigeo).padStart(2, '0') === String(codigoMapa).padStart(2, '0'));
+                
+                d3.select(this).attr("stroke", "#ffffff").attr("stroke-width", 2);
+                
+                // CORRECCIÓN: Si NOMDPTO no existe, usamos NOMDEPART o el que venga
+                const nombreDpto = prop.NOMDPTO || prop.NOMDEPART || prop.NOMBDEP || "DEPARTAMENTO";
 
-                top5.forEach(c => {
-                    cont.innerHTML += `
-                        <div class="glass-card p-4 flex items-center gap-4 border-l-4 border-blue-500">
-                            <img src="https://resultadoelectoral.onpe.gob.pe/assets/img-reales/candidatos/${c.dniCandidato}.jpg" 
-                                 class="w-14 h-14 rounded-xl border border-slate-700 object-cover" onerror="this.src='https://via.placeholder.com/100'">
-                            <div class="flex-1 min-w-0">
-                                <h3 class="text-xs font-extrabold text-white truncate uppercase">${c.nombreCandidato}</h3>
-                                <p class="text-[9px] text-slate-500 truncate uppercase mb-1">${c.nombreAgrupacionPolitica}</p>
-                                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                    <div class="bg-blue-500 h-full" style="width: ${c.porcentajeVotosValidos}%"></div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-sm font-black text-white leading-none">${Number(c.porcentajeVotosValidos).toFixed(3)}%</p>
-                                <p class="text-[8px] text-slate-500 font-bold mt-1 uppercase">${Number(c.totalVotosValidos).toLocaleString()} VOTOS</p>
-                            </div>
-                        </div>`;
-                });
-
-                // 3. Mapa
-                renderizarMapa(data.mapa_calor);
-
-            } catch (error) { console.error("Error Dashboard:", error); }
-        }
-
-        async function renderizarMapa(mapaData) {
-            const container = d3.select("#mapa-onpe");
-            container.selectAll("*").remove();
-
-            const width = document.getElementById('mapa-onpe').clientWidth;
-            const height = 550;
-            const svg = container.append("svg").attr("width", width).attr("height", height);
-            
-            let tooltip = d3.select("#tooltip-onpe");
-            if (tooltip.empty()) {
-                tooltip = d3.select("body").append("div").attr("id", "tooltip-onpe").attr("class", "tooltip-mapa");
-            }
-
-            const geoData = await d3.json("peru_departamentos.json");
-            const projection = d3.geoMercator().center([-75, -9.5]).scale(2100).translate([width/2, height/2]);
-            const pathGen = d3.geoPath().projection(projection);
-
-            svg.selectAll("path")
-                .data(geoData.features)
-                .enter().append("path")
-                .attr("d", pathGen)
-                .attr("fill", d => {
-                    const reg = mapaData.find(r => r.codigoUbigeo === d.properties.IDDPTO);
-                    return reg ? reg.colorPartido : "#111928";
-                })
-                .attr("stroke", "rgba(255,255,255,0.1)")
-                .on("mouseover", function(event, d) {
-                    const reg = mapaData.find(r => r.codigoUbigeo === d.properties.IDDPTO);
-                    d3.select(this).attr("stroke", "#ffffff").attr("stroke-width", 2);
-                    
-                    tooltip.style("visibility", "visible").html(`
-                        <div style="font-weight: 800; color: #60a5fa; text-transform: uppercase; margin-bottom: 5px; border-bottom: 1px solid #334155;">
-                            ${d.properties.NOMDPTO}
+                tooltip.style("visibility", "visible").html(`
+                    <div style="font-weight: 800; color: #60a5fa; text-transform: uppercase; margin-bottom: 5px; border-bottom: 1px solid #334155;">
+                        ${nombreDpto}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 8px;">
+                        <span>PARTICIPACIÓN:</span>
+                        <span style="font-weight: bold;">${reg ? reg.participacion : '0'}%</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px;">
+                        <span style="color: #fbbf24; font-size: 9px; font-weight: 800;">LÍDER EN REGIÓN:</span>
+                        <div style="font-size: 11px; font-weight: bold; color: ${reg ? reg.colorPartido : '#fff'}">
+                            ${reg ? reg.ganador : 'SIN DATOS'}
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 8px;">
-                            <span>PARTICIPACIÓN:</span>
-                            <span style="font-weight: bold;">${reg ? reg.participacion : '0'}%</span>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px;">
-                            <span style="color: #fbbf24; font-size: 9px; font-weight: 800;">LÍDER EN REGIÓN:</span>
-                            <div style="font-size: 11px; font-weight: bold; color: ${reg ? reg.colorPartido : '#fff'}">
-                                ${reg ? reg.ganador : 'SIN DATOS'}
-                            </div>
-                        </div>
-                    `);
-                })
-                .on("mousemove", e => tooltip.style("top", (e.pageY-10)+"px").style("left", (e.pageX+10)+"px"))
-                .on("mouseleave", function() {
-                    d3.select(this).attr("stroke", "rgba(255,255,255,0.1)").attr("stroke-width", 1);
-                    tooltip.style("visibility", "hidden");
-                });
-        }
+                    </div>
+                `);
+            })
+            .on("mousemove", e => tooltip.style("top", (e.pageY-10)+"px").style("left", (e.pageX+10)+"px"))
+            .on("mouseleave", function() {
+                d3.select(this).attr("stroke", "rgba(255,255,255,0.1)").attr("stroke-width", 1);
+                tooltip.style("visibility", "hidden");
+            });
+    }
 
-        cargarDashboard();
-        setInterval(cargarDashboard, 30000);
-    </script>
-</body>
-</html>
+    cargarDashboard();
+    setInterval(cargarDashboard, 30000);
+</script>
