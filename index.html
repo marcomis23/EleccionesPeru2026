@@ -93,7 +93,6 @@
                 document.getElementById('fecha-onpe').innerText = "ACTUALIZADO: " + data.ultima_sincro;
                 document.getElementById('txt-actas').innerText = (data.resumen.actasContabilizadas || "0") + "%";
 
-                // Render Nacional
                 const cont = document.getElementById('contenedor-candidatos');
                 cont.innerHTML = '';
                 const top5 = data.data.sort((a,b) => b.porcentajeVotosValidos - a.porcentajeVotosValidos).slice(0, 5);
@@ -133,26 +132,28 @@
                 .enter().append("path")
                 .attr("d", pathGen)
                 .attr("fill", d => {
-                    const id = d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.id;
-                    const reg = mapaData.find(r => String(r.codigoUbigeo).padStart(2, '0') === String(id).padStart(2, '0'));
+                    const idDraw = d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.id;
+                    const reg = mapaData.find(r => String(r.codigoUbigeo).padStart(2, '0') === String(idDraw).padStart(2, '0'));
                     return reg ? reg.colorPartido : "#1e293b";
                 })
                 .attr("stroke", "rgba(255,255,255,0.1)")
                 .on("mouseover", function(event, d) {
-                    const id = d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.id;
-                    const nombre = d.properties.NOMDPTO || d.properties.NOMDEPART || "REGIÓN";
-                    const reg = mapaData.find(r => String(r.codigoUbigeo).padStart(2, '0') === String(id).padStart(2, '0'));
+                    const nombreDpto = d.properties.NOMDPTO || d.properties.NOMDEPART || d.properties.NOMBDEP || "REGIÓN";
+                    const idDraw = d.properties.IDDPTO || d.properties.CD_DPTO || d.properties.id;
+                    const reg = mapaData.find(r => String(r.codigoUbigeo).padStart(2, '0') === String(idDraw).padStart(2, '0'));
                     
                     d3.select(this).attr("stroke", "#fff").attr("stroke-width", 2);
 
-                    let candidatosHTML = "";
+                    let htmlCandidatos = "";
                     if (reg && reg.top5) {
                         reg.top5.forEach(c => {
-                            candidatosHTML += `
+                            htmlCandidatos += `
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                    <img src="https://resultadoelectoral.onpe.gob.pe/assets/img-reales/candidatos/${c.dni}.jpg" style="width: 25px; height: 25px; border-radius: 5px;" onerror="this.src='https://via.placeholder.com/25'">
+                                    <img src="https://resultadoelectoral.onpe.gob.pe/assets/img-reales/candidatos/${c.dni}.jpg" 
+                                         style="width: 25px; height: 25px; border-radius: 5px;" 
+                                         onerror="this.src='https://via.placeholder.com/25'">
                                     <div style="flex: 1;">
-                                        <div style="font-size: 9px; font-weight: 800; color: white;">${c.nombre}</div>
+                                        <div style="font-size: 9px; font-weight: 800; color: white; line-height:1;">${c.nombre}</div>
                                         <div style="width: 100%; background: #1e293b; height: 3px; border-radius: 2px; margin-top: 3px;">
                                             <div style="width: ${c.porcentaje}%; background: ${reg.colorPartido}; height: 100%;"></div>
                                         </div>
@@ -163,8 +164,10 @@
                     }
 
                     tooltip.style("visibility", "visible").html(`
-                        <div style="font-weight: 800; color: #60a5fa; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 5px;">${nombre}</div>
-                        ${candidatosHTML || '<div style="font-size:10px;">Sin datos regionales</div>'}
+                        <div style="font-weight: 800; color: #60a5fa; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 5px;">
+                            ${nombreDpto}
+                        </div>
+                        ${htmlCandidatos || '<div style="font-size:10px; color: #94a3b8;">Sin datos regionales (Bloqueo ONPE)</div>'}
                     `);
                 })
                 .on("mousemove", e => tooltip.style("top", (e.pageY-10)+"px").style("left", (e.pageX+10)+"px"))
