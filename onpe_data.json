@@ -327,23 +327,23 @@
       "porcentajeVotosEmitidos": 14.242
     }
   ],
-  "ultima_sincro": "01/05/2026 08:55:05",
+  "ultima_sincro": "01/05/2026 12:14:35",
   "resumen": {
-    "actasContabilizadas": 97.396,
-    "contabilizadas": 90350,
+    "actasContabilizadas": 97.407,
+    "contabilizadas": 90361,
     "totalActas": 92766,
-    "participacionCiudadana": 71.944,
-    "actasEnviadasJee": 2.602,
-    "enviadasJee": 2414,
+    "participacionCiudadana": 71.954,
+    "actasEnviadasJee": 2.591,
+    "enviadasJee": 2404,
     "actasPendientesJee": 0.002,
-    "pendientesJee": 2,
-    "fechaActualizacion": 1777616100462,
+    "pendientesJee": 1,
+    "fechaActualizacion": 1777654803739,
     "idUbigeoDepartamento": 140000,
     "idUbigeoProvincia": 140100,
     "idUbigeoDistrito": 140101,
     "idUbigeoDistritoElectoral": 15,
-    "totalVotosEmitidos": 19659114,
-    "totalVotosValidos": 16353444,
+    "totalVotosEmitidos": 19661777,
+    "totalVotosValidos": 16355699,
     "porcentajeVotosEmitidos": 100,
     "porcentajeVotosValidos": 100
   }
