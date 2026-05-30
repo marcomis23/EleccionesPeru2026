@@ -327,7 +327,7 @@
       "porcentajeVotosEmitidos": 14.269
     }
   ],
-  "ultima_sincro": "30/05/2026 10:40:18",
+  "ultima_sincro": "30/05/2026 11:44:29",
   "resumen": {
     "actasContabilizadas": 100.0,
     "contabilizadas": 92766,
@@ -337,7 +337,7 @@
     "enviadasJee": 0,
     "actasPendientesJee": 0.0,
     "pendientesJee": 0,
-    "fechaActualizacion": 1780154108339,
+    "fechaActualizacion": 1780158605528,
     "idUbigeoDepartamento": 140000,
     "idUbigeoProvincia": 140100,
     "idUbigeoDistrito": 140101,
